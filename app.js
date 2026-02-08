@@ -295,11 +295,4 @@ installBtn.addEventListener("click", async ()=>{
   deferredPrompt = null;
   installBtn.classList.add("hidden");
 });
-// Force close cart on X click (Fix)
-document.addEventListener("click", function(e){
-  if(e.target && e.target.id === "closeCart"){
-    document.getElementById("cartModal").classList.add("hidden");
-  }
-});
-
 
