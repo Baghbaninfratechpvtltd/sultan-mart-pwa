@@ -1,139 +1,128 @@
-body{
-  margin:0;
-  font-family: Arial, sans-serif;
-  background:#f5f7fb;
-  color:#111;
-}
-.topbar{
-  background:#0ea5e9;
-  color:white;
-  padding:14px 18px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-.container{
-  padding:16px;
-  max-width:1000px;
-  margin:auto;
-}
-.banner{
-  background:white;
-  padding:16px;
-  border-radius:14px;
-  box-shadow:0 8px 20px rgba(0,0,0,0.08);
-}
-.searchRow{
-  margin:16px 0;
-  display:flex;
-  gap:10px;
-}
-.searchRow input{
-  flex:1;
-  padding:12px;
-  border-radius:10px;
-  border:1px solid #ddd;
-}
-.btn{
-  background:#0ea5e9;
-  border:none;
-  padding:12px 14px;
-  border-radius:10px;
-  color:white;
-  cursor:pointer;
-  font-weight:bold;
-}
-.btn.small{ padding:8px 10px; }
-.btn.full{ width:100%; margin-top:10px; }
-.btn.outline{
-  background:white;
-  color:#0ea5e9;
-  border:2px solid #0ea5e9;
-}
-.btn.danger{
-  background:#ef4444;
-}
-.hidden{ display:none; }
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto;}
+body{background:#f7fafc;color:#0f172a;}
+a{text-decoration:none;}
+.small{font-size:13px;color:#475569;}
+.container{max-width:1100px;margin:0 auto;padding:16px;}
 
-.chips{
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-  margin:10px 0 20px;
+.topbar{
+  position:sticky;top:0;z-index:10;
+  background:#ffffffcc;backdrop-filter: blur(10px);
+  border-bottom:1px solid #e2e8f0;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 16px;
 }
-.chip{
-  background:white;
-  border:1px solid #ddd;
-  padding:10px 14px;
-  border-radius:999px;
-  cursor:pointer;
+.topbar h1{font-size:20px;}
+.rightTop{display:flex;gap:10px;align-items:center;}
+
+.hero{padding:18px 0;}
+.heroBox{
+  background:linear-gradient(135deg,#0ea5e9,#22c55e);
+  color:white;border-radius:18px;padding:18px;
+  box-shadow:0 12px 30px rgba(0,0,0,.12);
 }
-.chip.active{
-  background:#0ea5e9;
-  color:white;
-  border:none;
+.heroBox h2{font-size:20px;margin-bottom:8px;}
+.heroActions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;}
+
+.controls{
+  display:flex;gap:12px;align-items:center;
+  flex-wrap:wrap;margin:10px 0 18px;
 }
+.search{
+  flex:1;min-width:220px;
+  padding:12px 14px;border-radius:12px;border:1px solid #cbd5e1;
+  outline:none;background:white;
+}
+.areaBox{display:flex;gap:8px;align-items:center;}
+select, input, textarea{
+  width:100%;
+  padding:12px 12px;border-radius:12px;border:1px solid #cbd5e1;
+  outline:none;background:white;
+}
+textarea{min-height:70px;resize:vertical;}
+
+.categories h3,.products h3{margin:10px 0 10px;font-size:16px;}
+.chips{display:flex;gap:8px;flex-wrap:wrap;}
+.cat-btn{
+  padding:10px 12px;border-radius:999px;border:1px solid #cbd5e1;
+  background:white;cursor:pointer;font-size:13px;
+}
+.cat-btn.active{background:#0ea5e9;color:white;border-color:#0ea5e9;}
 
 .grid{
   display:grid;
-  grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));
-  gap:14px;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:12px;
 }
-.card{
-  background:white;
-  border-radius:14px;
-  padding:14px;
-  box-shadow:0 8px 18px rgba(0,0,0,0.06);
+.product-card{
+  background:white;border:1px solid #e2e8f0;border-radius:16px;
+  padding:14px;box-shadow:0 10px 25px rgba(0,0,0,.05);
 }
-.card h4{ margin:0 0 6px; }
-.price{ font-size:18px; font-weight:bold; margin:8px 0; }
-.small{ font-size:13px; opacity:0.8; }
-.note{ font-size:13px; opacity:0.8; margin-top:8px; }
-.big{ font-size:20px; }
+.product-card h3{font-size:15px;margin-bottom:6px;}
+.category{font-size:13px;color:#64748b;}
+.price{font-size:18px;font-weight:800;margin-top:8px;}
+
+.add-btn{
+  margin-top:10px;
+  width:100%;
+  background:#0ea5e9;color:white;border:none;
+  padding:11px 14px;border-radius:14px;
+  cursor:pointer;font-weight:700;
+}
+.add-btn:hover{opacity:.92;}
+
+.btn{
+  background:#0ea5e9;color:white;border:none;
+  padding:11px 14px;border-radius:14px;
+  cursor:pointer;font-weight:700;
+}
+.btn:hover{opacity:.92;}
+.btn.outline{background:white;color:#0ea5e9;border:1px solid #0ea5e9;}
+.btn.full{width:100%;margin-top:10px;}
+.btn.big{padding:14px;font-size:16px;}
+.btn.small{padding:8px 10px;border-radius:12px;}
+.btn.danger{background:#ef4444;}
+.hidden{display:none;}
 
 .modal{
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:rgba(0,0,0,0.45);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  padding:14px;
+  position:fixed;inset:0;background:rgba(0,0,0,.45);
+  display:flex;align-items:center;justify-content:center;
+  padding:12px;
 }
 .modalBox{
+  width:100%;max-width:720px;
+  background:white;border-radius:18px;
+  padding:14px;max-height:92vh;overflow:auto;
+}
+.modalHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.cartItems{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;}
+
+.cart-row{
+  display:flex;justify-content:space-between;align-items:center;
+  border:1px solid #e2e8f0;border-radius:14px;padding:10px;
+}
+.cart-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+
+.qty-btn{
+  width:38px;height:38px;border-radius:12px;
+  border:1px solid #cbd5e1;background:white;
+  cursor:pointer;font-weight:900;font-size:16px;
+}
+.remove-btn{
+  background:#ef4444;color:white;border:none;
+  padding:10px 12px;border-radius:12px;
+  cursor:pointer;font-weight:700;
+}
+
+.bill{
+  border-top:1px dashed #cbd5e1;
+  padding-top:12px;margin-top:10px;
+}
+.row{display:flex;justify-content:space-between;margin:6px 0;}
+.row.total{font-size:18px;}
+.checkout{margin-top:14px;display:flex;flex-direction:column;gap:10px;}
+
+.footer{
+  padding:18px;text-align:center;
+  border-top:1px solid #e2e8f0;margin-top:20px;
   background:white;
-  width:100%;
-  max-width:520px;
-  border-radius:16px;
-  padding:14px;
-  max-height:90vh;
-  overflow:auto;
 }
-.modalHeader{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-.cartRow{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:10px 0;
-  border-bottom:1px solid #eee;
-}
-.qtyBtn{
-  padding:6px 10px;
-  border-radius:8px;
-  border:1px solid #ddd;
-  background:#fff;
-  cursor:pointer;
-}
-.form input, .form textarea, .form select{
-  width:100%;
-  padding:12px;
-  border-radius:10px;
-  border:1px solid #ddd;
-  margin-top:10px;
-}
-textarea{ min-height:90px; }
