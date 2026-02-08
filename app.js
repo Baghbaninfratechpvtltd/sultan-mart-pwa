@@ -10,69 +10,55 @@ const DELIVERY_RULES = {
 };
 
 // 50 Products (Fixed Price)
-const products = [
-  { id: 1, name: "Aashirvaad Atta 5kg", price: 280, category: "Atta / Flour" },
-  { id: 2, name: "Aashirvaad Atta 10kg", price: 550, category: "Atta / Flour" },
-  { id: 3, name: "Maida 1kg", price: 55, category: "Atta / Flour" },
-  { id: 4, name: "Besan 1kg", price: 95, category: "Atta / Flour" },
-  { id: 5, name: "Suji 1kg", price: 60, category: "Atta / Flour" },
+// ✅ Sultan Mart - Products Google Sheet CSV
+const GOOGLE_SHEET_CSV =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0DkCrsf4_AD96Kv9yaYNbMUUHpQtz59zkXH9f1T9mPI2pXB-OcXTR0pdO-9sgyarYD4pEp8nolt5R/pub?output=csv";
 
-  { id: 6, name: "Basmati Rice 5kg", price: 320, category: "Rice / Chawal" },
-  { id: 7, name: "Sona Masoori Rice 5kg", price: 290, category: "Rice / Chawal" },
-  { id: 8, name: "Normal Chawal 5kg", price: 240, category: "Rice / Chawal" },
-  { id: 9, name: "Poha 1kg", price: 70, category: "Rice / Chawal" },
-  { id: 10, name: "Murmura 500g", price: 35, category: "Rice / Chawal" },
+let products = []; // products अब sheet से आएंगे
 
-  { id: 11, name: "Toor Dal 1kg", price: 120, category: "Dal / Pulses" },
-  { id: 12, name: "Chana Dal 1kg", price: 95, category: "Dal / Pulses" },
-  { id: 13, name: "Moong Dal 1kg", price: 110, category: "Dal / Pulses" },
-  { id: 14, name: "Masoor Dal 1kg", price: 105, category: "Dal / Pulses" },
-  { id: 15, name: "Urad Dal 1kg", price: 130, category: "Dal / Pulses" },
+// ✅ CSV Loader
+async function loadProductsFromSheet() {
+  try {
+    const res = await fetch(GOOGLE_SHEET_CSV, { cache: "no-store" });
+    const csvText = await res.text();
 
-  { id: 16, name: "Fortune Mustard Oil 1L", price: 165, category: "Oil / Ghee" },
-  { id: 17, name: "Fortune Refined Oil 1L", price: 150, category: "Oil / Ghee" },
-  { id: 18, name: "Sunflower Oil 1L", price: 155, category: "Oil / Ghee" },
-  { id: 19, name: "Desi Ghee 500ml", price: 280, category: "Oil / Ghee" },
-  { id: 20, name: "Vanaspati 1kg", price: 140, category: "Oil / Ghee" },
+    const rows = csvText.trim().split("\n").map(r => r.split(","));
 
-  { id: 21, name: "Haldi Powder 200g", price: 45, category: "Spices" },
-  { id: 22, name: "Mirch Powder 200g", price: 55, category: "Spices" },
-  { id: 23, name: "Dhaniya Powder 200g", price: 50, category: "Spices" },
-  { id: 24, name: "Garam Masala 100g", price: 60, category: "Spices" },
-  { id: 25, name: "Jeera 100g", price: 35, category: "Spices" },
+    // headers: name, price, category
+    const headers = rows[0].map(h => h.trim().toLowerCase());
 
-  { id: 26, name: "Namkeen Mix 200g", price: 30, category: "Snacks" },
-  { id: 27, name: "Bhujia 200g", price: 35, category: "Snacks" },
-  { id: 28, name: "Kurkure 90g", price: 20, category: "Snacks" },
-  { id: 29, name: "Chips Packet", price: 20, category: "Snacks" },
-  { id: 30, name: "Peanuts 500g", price: 70, category: "Snacks" },
+    const nameIndex = headers.indexOf("name");
+    const priceIndex = headers.indexOf("price");
+    const categoryIndex = headers.indexOf("category");
 
-  { id: 31, name: "Tata Tea 250g", price: 85, category: "Tea / Coffee" },
-  { id: 32, name: "Red Label Tea 250g", price: 90, category: "Tea / Coffee" },
-  { id: 33, name: "Nescafe Coffee 50g", price: 90, category: "Tea / Coffee" },
-  { id: 34, name: "Bru Coffee 50g", price: 85, category: "Tea / Coffee" },
-  { id: 35, name: "Green Tea 25 Bags", price: 120, category: "Tea / Coffee" },
+    const list = [];
 
-  { id: 36, name: "Sugar 1kg", price: 50, category: "Daily Use" },
-  { id: 37, name: "Salt 1kg", price: 22, category: "Daily Use" },
-  { id: 38, name: "Tea Sugar 500g", price: 28, category: "Daily Use" },
-  { id: 39, name: "Milk Powder 500g", price: 220, category: "Daily Use" },
-  { id: 40, name: "Bread 1 Packet", price: 35, category: "Daily Use" },
+    for (let i = 1; i < rows.length; i++) {
+      const cols = rows[i];
 
-  { id: 41, name: "Detergent Powder 1kg", price: 90, category: "Soap / Cleaning" },
-  { id: 42, name: "Dishwash Liquid 500ml", price: 85, category: "Soap / Cleaning" },
-  { id: 43, name: "Bath Soap Pack", price: 70, category: "Soap / Cleaning" },
-  { id: 44, name: "Shampoo Sachet Pack", price: 60, category: "Soap / Cleaning" },
-  { id: 45, name: "Toothpaste 200g", price: 85, category: "Soap / Cleaning" },
+      const name = (cols[nameIndex] || "").trim();
+      const price = parseFloat((cols[priceIndex] || "0").trim());
+      const category = (cols[categoryIndex] || "Others").trim();
 
-  { id: 46, name: "Parle-G Biscuit", price: 10, category: "Biscuits" },
-  { id: 47, name: "Marie Gold Biscuit", price: 30, category: "Biscuits" },
-  { id: 48, name: "Good Day Biscuit", price: 35, category: "Biscuits" },
+      if (!name) continue;
 
-  { id: 49, name: "Coca Cola 750ml", price: 40, category: "Cold Drinks" },
-  { id: 50, name: "Sprite 750ml", price: 40, category: "Cold Drinks" }
-];
+      list.push({
+        id: i,
+        name,
+        price: isNaN(price) ? 0 : price,
+        category: category || "Others",
+      });
+    }
 
+    products = list;
+
+   loadProductsFromSheet();
+    
+  } catch (err) {
+    alert("Products load nahi ho rahe. Sheet publish check karo!");
+    console.log(err);
+  }
+}
 // CART
 let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
@@ -320,3 +306,4 @@ renderCart();
 if("serviceWorker" in navigator){
   navigator.serviceWorker.register("service-worker.js");
 }
+
