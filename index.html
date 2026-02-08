@@ -12,84 +12,109 @@
 </head>
 
 <body>
+
   <header class="topbar">
     <div>
       <h1>Sultan Mart Bharatganj</h1>
-      <p>Timing: 7 AM – 10 PM • Minimum Order ₹199</p>
+      <p class="small">Online Kirana • COD + UPI • 7 AM – 10 PM</p>
+      <p class="small">Minimum order ₹199 • Bharatganj Free • Nearby ₹10 • Far ₹20</p>
     </div>
-    <button id="installBtn" class="btn small hidden">Install App</button>
+
+    <div class="rightTop">
+      <button id="cartBtn" class="btn">🛒 Cart (<span id="cartCount">0</span>)</button>
+    </div>
   </header>
 
   <main class="container">
-    <section class="banner">
-      <h2>Bharatganj ka apna Online Kirana Store</h2>
-      <p>Fresh Grocery • Best Price • Fast Delivery • COD + UPI Available</p>
-      <p class="small">UPI: 9559868648@ptyes | WhatsApp: 9559868648</p>
-    </section>
 
-    <div class="searchRow">
-      <input id="searchInput" type="text" placeholder="Search products..." />
-      <button class="btn" onclick="openCart()">Cart (<span id="cartCount">0</span>)</button>
-    </div>
+    <section class="hero">
+      <div class="heroBox">
+        <h2>🛍️ Online Order in Bharatganj & Nearby</h2>
+        <p>Fresh Kirana items • Fast delivery • Trusted shop</p>
 
-    <section>
-      <h3>Categories</h3>
-      <div id="categoryList" class="chips"></div>
-    </section>
-
-    <section>
-      <h3 id="productsTitle">All Products</h3>
-      <div id="productGrid" class="grid"></div>
-    </section>
-
-    <!-- CART MODAL -->
-    <div id="cartModal" class="modal hidden">
-      <div class="modalBox">
-        <div class="modalHeader">
-          <h3>Your Cart</h3>
-          <button id="closeCart" class="btn danger small" onclick="closeCart()">X</button>
-        </div>
-
-        <div id="cartItems"></div>
-
-        <div class="totals">
-          <p><b>Subtotal:</b> ₹<span id="subtotal">0</span></p>
-
-          <label><b>Delivery Area</b></label>
-          <select id="deliveryArea" onchange="updateTotals()">
-            <option value="bharatganj">Bharatganj (Free)</option>
-            <option value="nearby">Nearby (₹10)</option>
-            <option value="far">Far (₹20)</option>
-          </select>
-
-          <p><b>Delivery Charge:</b> ₹<span id="deliveryCharge">0</span></p>
-          <p class="big"><b>Total:</b> ₹<span id="total">0</span></p>
-
-          <p class="note">Minimum Order ₹199 required</p>
-        </div>
-
-        <hr />
-
-        <h3>Checkout</h3>
-        <div class="form">
-          <input id="custName" type="text" placeholder="Your Name" />
-          <input id="custMobile" type="tel" placeholder="Mobile Number" />
-          <input id="custLandmark" type="text" placeholder="Landmark (optional)" />
-          <textarea id="custAddress" placeholder="Full Address"></textarea>
-
-          <label><b>Payment Method</b></label>
-          <select id="paymentMethod">
-            <option value="COD">Cash on Delivery (COD)</option>
-            <option value="UPI">UPI (9559868648@ptyes)</option>
-          </select>
-
-          <button class="btn full" onclick="placeOrder()">Place Order on WhatsApp</button>
-          <button class="btn outline full" onclick="callShop()">Call Shop</button>
+        <div class="heroActions">
+          <button id="callShopBtn" class="btn">📞 Call Shop</button>
+          <a class="btn outline" target="_blank"
+            href="upi://pay?pa=9559868648@ptyes&pn=Sultan%20Mart%20Bharatganj&cu=INR">
+            💳 Pay via UPI
+          </a>
         </div>
       </div>
-    </div>
+    </section>
+
+    <section class="controls">
+      <input id="searchInput" class="search" type="text" placeholder="Search product..." />
+
+      <div class="areaBox">
+        <label>Delivery Area:</label>
+        <select id="deliveryArea">
+          <option>Bharatganj (Free)</option>
+          <option>Nearby (₹10)</option>
+          <option>Far (₹20)</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="categories">
+      <h3>Categories</h3>
+
+      <div class="chips">
+        <button class="cat-btn active" data-cat="All">All</button>
+        <button class="cat-btn" data-cat="Atta / Flour">Atta / Flour</button>
+        <button class="cat-btn" data-cat="Rice / Chawal">Rice / Chawal</button>
+        <button class="cat-btn" data-cat="Dal / Pulses">Dal / Pulses</button>
+        <button class="cat-btn" data-cat="Daily Use">Daily Use</button>
+        <button class="cat-btn" data-cat="Soap / Cleaning">Soap / Cleaning</button>
+      </div>
+    </section>
+
+    <section class="products">
+      <h3>Products</h3>
+      <div id="products" class="grid"></div>
+    </section>
 
   </main>
+
+  <!-- CART MODAL -->
+  <div id="cartModal" class="modal hidden">
+    <div class="modalBox">
+
+      <div class="modalHeader">
+        <h3>🛒 Your Cart</h3>
+        <button id="closeCart" class="btn danger small">X</button>
+      </div>
+
+      <div id="cartItems" class="cartItems"></div>
+
+      <div class="bill">
+        <div class="row"><span>Subtotal</span><b><span id="subtotal">₹0</span></b></div>
+        <div class="row"><span>Delivery</span><b><span id="deliveryCharge">₹0</span></b></div>
+        <div class="row total"><span>Total</span><b><span id="total">₹0</span></b></div>
+        <p class="small">Minimum order: ₹199</p>
+      </div>
+
+      <div class="checkout">
+        <h4>Checkout Details</h4>
+
+        <input id="customerName" type="text" placeholder="Your Name" />
+        <input id="customerPhone" type="tel" placeholder="Mobile Number" />
+        <textarea id="customerAddress" placeholder="Full Address"></textarea>
+        <input id="customerLandmark" type="text" placeholder="Landmark (optional)" />
+
+        <select id="paymentMethod">
+          <option value="COD">Cash on Delivery (COD)</option>
+          <option value="UPI">UPI Payment</option>
+        </select>
+
+        <button id="placeOrderBtn" class="btn full big">✅ Place Order on WhatsApp</button>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>© Sultan Mart Bharatganj • WhatsApp Orders: 9559868648</p>
+  </footer>
 
   <script src="app.js"></script>
 
@@ -98,6 +123,6 @@
       navigator.serviceWorker.register("service-worker.js");
     }
   </script>
+
 </body>
 </html>
-
