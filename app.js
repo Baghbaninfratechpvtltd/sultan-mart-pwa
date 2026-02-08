@@ -1,57 +1,60 @@
-// ====== GOOGLE SHEET CSV LINK (FINAL & WORKING) ======
 const SHEET_URL =
   "https://docs.google.com/spreadsheets/d/1AdPQGVtZvoiFpY4tMCrxXEf1KcK96G71OUWYyFEAvRg/gviz/tq?tqx=out:csv&sheet=Sheet1";
 
 const productsDiv = document.getElementById("products");
-const todayOfferDiv = document.getElementById("today-offer");
 
-// ====== CSV PARSER ======
-function csvToArray(str) {
-  const rows = str.trim().split("\n").map(r => r.split(","));
-  const headers = rows[0].map(h => h.trim());
+function parseCSV(text) {
+  const rows = text.trim().split("\n");
+  const headers = rows[0].split(",");
+
   return rows.slice(1).map(row => {
+    const cols = row.split(",");
     let obj = {};
-    headers.forEach((h, i) => {
-      obj[h] = row[i] ? row[i].trim() : "";
-    });
+    headers.forEach((h, i) => (obj[h.trim()] = cols[i]?.trim() || ""));
     return obj;
   });
 }
 
-// ====== LOAD PRODUCTS ======
 fetch(SHEET_URL)
-  .then(res => res.text())
+  .then(r => r.text())
   .then(csv => {
-    const items = csvToArray(csv);
-
+    const items = parseCSV(csv);
     productsDiv.innerHTML = "";
-    todayOfferDiv.innerHTML = "";
 
     items.forEach(item => {
-      if (item.in_stock !== "yes") return;
+      let priceHTML = `<h4>₹${item.price}</h4>`;
+      let buttonHTML = `<button class="add-btn">Add to Cart</button>`;
+      let badgeHTML = "";
 
-      const card = `
-        <div class="product-card">
-          <img src="${item.image}" alt="${item.name}">
-          <h3>${item.name}</h3>
-          <p>
-            <span style="text-decoration:line-through;color:gray;">₹${item.price}</span>
-            <b style="color:red;"> ₹${item.discount_price}</b>
-          </p>
-          <small style="color:green;">${item.offer}</small>
-          <br>
-          <button>Add to Cart</button>
-        </div>
-      `;
+      if (item.discount_price && item.discount_price !== item.price) {
+        priceHTML = `
+          <h4>
+            <del style="color:#888">₹${item.price}</del>
+            <span style="color:#e53935;font-weight:bold"> ₹${item.discount_price}</span>
+          </h4>
+        `;
+      }
 
-      productsDiv.innerHTML += card;
+      if (item.in_stock === "no") {
+        buttonHTML = `<button class="add-btn" disabled>Out of Stock</button>`;
+        badgeHTML = `<span style="color:red;font-size:12px">Out of Stock</span>`;
+      }
 
       if (item.today_offer === "yes") {
-        todayOfferDiv.innerHTML += card;
+        badgeHTML = `<span style="color:green;font-size:12px">🔥 Aaj ka Offer</span>`;
       }
+
+      productsDiv.innerHTML += `
+        <div class="product-card">
+          <h3>${item.name}</h3>
+          <p>${item.category}</p>
+          ${priceHTML}
+          ${badgeHTML}<br>
+          ${buttonHTML}
+        </div>
+      `;
     });
   })
-  .catch(err => {
-    productsDiv.innerHTML = "Data load nahi ho raha";
-    console.error(err);
+  .catch(() => {
+    productsDiv.innerHTML = "Data load error";
   });
