@@ -1,12 +1,21 @@
 {
   "name": "Sultan Mart Bharatganj",
   "short_name": "Sultan Mart",
-  "start_url": "./index.html",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0ea5e9",
+  "description": "Online Kirana Store for Bharatganj & nearby areas. COD + UPI available.",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
