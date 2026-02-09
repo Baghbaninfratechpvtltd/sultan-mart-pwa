@@ -2,19 +2,15 @@
 // SETTINGS
 // ===============================
 
-// Google Sheet Published URL (pubhtml)
 const publicSpreadsheetUrl =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0DkCrsf4_AD96Kv9yaYNbMUUHpQtz59zkXH9f1T9mPI2pXB-OcXTR0pdO-9sgyarYD4pEp8nolt5R/pubhtml";
 
-// WhatsApp + Call
 const WHATSAPP_NUMBER = "919559868648";
 const CALL_NUMBER = "919559868648";
 
-// UPI
 const UPI_ID = "9559868648@ptyes";
 const SHOP_NAME = "Sultan Mart Bharatganj";
 
-// Delivery Rule
 const MIN_ORDER_FREE_DELIVERY = 199;
 const DELIVERY_FEE = 20;
 
@@ -62,10 +58,11 @@ function init() {
   })
     .then((data) => {
 
-      // Aapke headers ke hisab se exact mapping
       ALL_PRODUCTS = data
         .map((row, index) => {
 
+          // Headers (your sheet)
+          // ID | Name | Category | MRP | Discount | Sale Price | Stock | Image
           const id = safeText(row.ID) || String(index + 1);
           const name = safeText(row.Name);
           const category = safeText(row.Category);
@@ -76,7 +73,6 @@ function init() {
           const stock = toNumber(row.Stock);
           const image = safeText(row.Image);
 
-          // Sale Price auto calculate (agar sheet me blank ho)
           let finalSale = sheetSale;
           if (!finalSale && mrp > 0 && discount > 0) {
             finalSale = Math.round(mrp - (mrp * discount / 100));
@@ -162,7 +158,7 @@ function applyFilters() {
 }
 
 // ===============================
-// OFFERS (Discount > 0)
+// OFFERS
 // ===============================
 function renderOffers() {
   const offersGrid = document.getElementById("offersGrid");
@@ -412,7 +408,6 @@ document.getElementById("callBtn").addEventListener("click", () => {
 // UPI PAY BUTTON
 // ===============================
 document.getElementById("payUpiBtn").addEventListener("click", () => {
-
   const ids = Object.keys(CART);
   if (ids.length === 0) {
     alert("Cart is empty");
