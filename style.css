@@ -452,3 +452,36 @@ body {
   background:#25D366;
   color:#fff;
 }
+
+/* PRODUCT GRID */
+.products-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  padding:10px;
+}
+
+@media(max-width:768px){
+  .products-grid{
+    grid-template-columns:repeat(2,1fr);
+  }
+}
+
+/* CART CENTER POPUP */
+.cart-overlay{
+  position:fixed;
+  top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.5);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:999;
+}
+
+.cart-modal{
+  background:#fff;
+  width:90%;
+  max-width:400px;
+  padding:15px;
+  border-radius:10px;
+}
