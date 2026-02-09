@@ -6,107 +6,109 @@
   <title>Sultan Mart Bharatganj</title>
 
   <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#ff9800">
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#111111" />
 
+  <!-- CSS -->
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Tabletop (Google Sheet) -->
+  <script src="https://cdn.jsdelivr.net/npm/tabletop@1.5.1/src/tabletop.min.js"></script>
 </head>
 
 <body>
 
   <!-- HEADER -->
-  <div class="header">
-    <div>
-      <h1>Sultan Mart Bharatganj</h1>
-      <div class="sub">Online Grocery • 7 AM – 10 PM</div>
-      <div class="sub">Minimum Order: ₹199 • Bharatganj Free Delivery</div>
+  <header class="top-header">
+    <div class="brand">
+      <div class="brand-title">Sultan Mart Bharatganj</div>
+      <div class="brand-sub">Online Grocery • 7 AM – 10 PM</div>
+      <div class="brand-sub">Minimum Order: ₹199 • Bharatganj Free Delivery</div>
     </div>
 
     <button class="cart-btn" id="openCartBtn">
       🛒 Cart <span id="cartCount">0</span>
     </button>
-  </div>
+  </header>
 
   <!-- SEARCH -->
-  <div class="search-wrap">
-    <input id="searchInput" type="text" placeholder="Search products..." />
-  </div>
-
-  <!-- TODAY OFFERS -->
-  <div class="today-wrap">
-    <h2>🔥 Today Offers</h2>
-    <div class="today-grid" id="offersGrid"></div>
-  </div>
+  <section class="search-section">
+    <input type="text" id="searchInput" placeholder="Search products..." />
+  </section>
 
   <!-- CATEGORIES -->
-  <div class="cat-wrap">
-    <h2>📌 Categories</h2>
+  <section class="cat-section">
     <div class="cat-row" id="catRow"></div>
-  </div>
+  </section>
+
+  <!-- OFFERS -->
+  <section class="offers-section">
+    <h2 class="sec-title">🔥 Today’s Offers</h2>
+    <div class="offers-grid" id="offersGrid"></div>
+  </section>
 
   <!-- PRODUCTS -->
-  <div class="main">
-    <h2>🛍️ All Products</h2>
-    <div class="grid" id="productsGrid"></div>
-  </div>
+  <section class="products-section">
+    <h2 class="sec-title">🛍 All Products</h2>
+    <div class="products-grid" id="productsGrid"></div>
+  </section>
 
   <!-- CART MODAL -->
   <div class="modal" id="cartModal">
     <div class="modal-box">
+
       <div class="modal-head">
-        <h2>🛒 Your Cart</h2>
+        <div class="modal-title">🛒 Your Cart</div>
         <button class="close-btn" id="closeCartBtn">✖</button>
       </div>
 
       <div class="cart-items" id="cartItems"></div>
 
-      <div class="bill">
+      <div class="bill-box">
         <div class="bill-row">
-          <div>Subtotal</div>
-          <div id="subtotal">₹0</div>
+          <span>Subtotal</span>
+          <span id="subtotal">₹0</span>
         </div>
         <div class="bill-row">
-          <div>Delivery</div>
-          <div id="deliveryFee">₹0</div>
+          <span>Delivery Fee</span>
+          <span id="deliveryFee">₹0</span>
         </div>
         <div class="bill-row total">
-          <div>Total</div>
-          <div id="totalBill">₹0</div>
-        </div>
-
-        <div class="sub" style="margin-top:6px;">
-          Free Delivery in Bharatganj (₹199+)
+          <span>Total</span>
+          <span id="totalBill">₹0</span>
         </div>
       </div>
 
-      <!-- CUSTOMER FORM -->
-      <div class="form">
+      <div class="form-box">
         <input id="custName" type="text" placeholder="Your Name" />
-        <input id="custPhone" type="tel" placeholder="Mobile Number" />
-        <textarea id="custAddress" placeholder="Full Address (Bharatganj)"></textarea>
-
-        <button class="order-btn" id="placeOrderBtn">📲 Place Order on WhatsApp</button>
-
-        <!-- ✅ NEW UPI PAY BUTTON -->
-        <button class="pay-btn" id="payUpiBtn">💳 Pay via UPI</button>
-
-        <button class="call-btn" id="callBtn">📞 Call Shop</button>
-
-        <div class="msg" id="msgBox"></div>
+        <input id="custPhone" type="tel" placeholder="Phone Number" />
+        <textarea id="custAddress" placeholder="Full Address"></textarea>
       </div>
+
+      <div class="msg" id="msgBox"></div>
+
+      <div class="btn-row">
+        <button class="order-btn" id="placeOrderBtn">📲 Place Order on WhatsApp</button>
+        <button class="call-btn" id="callBtn">📞 Call Shop</button>
+        <button class="pay-btn" id="payUpiBtn">💳 Pay via UPI</button>
+      </div>
+
+      <div class="note">
+        ⚡ Tip: UPI payment ke baad WhatsApp par screenshot bhej dena.
+      </div>
+
     </div>
   </div>
 
-  <!-- Tabletop.js (Google Sheet) -->
-  <script src="https://cdn.jsdelivr.net/npm/tabletop@1.5.1/src/tabletop.min.js"></script>
+  <!-- JS -->
+  <script src="app.js"></script>
 
-  <!-- Service Worker Register -->
+  <!-- SERVICE WORKER -->
   <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("./service-worker.js");
     }
   </script>
 
-  <script src="app.js"></script>
 </body>
 </html>
