@@ -441,7 +441,13 @@ function renderCart() {
       msg += `🚚 COD selected. Please keep cash ready 🙏`;
     }
 
-    const waUrl = `https://wa.me/91${WHATSAPP_NUMBER}?text=${msg}`;
+    const waUrl = `https://wa.me/91${WHATSAPP_NUMBER}?text=${msg}`;// ✅ Cart Clear after Confirm
+cart = [];
+localStorage.setItem("cart", JSON.stringify(cart));
+renderCart();
+updateCartCount();
+alert("✅ Order Confirmed! Cart cleared.");
+
     window.open(waUrl, "_blank");
   };
 }
@@ -499,3 +505,4 @@ if ("serviceWorker" in navigator) {
 loadCustomer();
 toggleUPIBox();
 loadProducts();
+
