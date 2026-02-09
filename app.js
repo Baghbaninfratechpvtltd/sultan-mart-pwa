@@ -1,22 +1,25 @@
 // ===============================
-// 1) SETTINGS
+// SETTINGS
 // ===============================
 
 // Google Sheet Published URL (pubhtml)
-const publicSpreadsheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0DkCrsf4_AD96Kv9yaYNbMUUHpQtz59zkXH9f1T9mPI2pXB-OcXTR0pdO-9sgyarYD4pEp8nolt5R/pubhtml";
+const publicSpreadsheetUrl =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0DkCrsf4_AD96Kv9yaYNbMUUHpQtz59zkXH9f1T9mPI2pXB-OcXTR0pdO-9sgyarYD4pEp8nolt5R/pubhtml";
 
-// WhatsApp Number
+// WhatsApp + Call
 const WHATSAPP_NUMBER = "919559868648";
-
-// Call Number
 const CALL_NUMBER = "919559868648";
 
-// UPI Settings
+// UPI
 const UPI_ID = "9559868648@ptyes";
 const SHOP_NAME = "Sultan Mart Bharatganj";
 
+// Delivery Rule
+const MIN_ORDER_FREE_DELIVERY = 199;
+const DELIVERY_FEE = 20;
+
 // ===============================
-// 2) GLOBALS
+// GLOBALS
 // ===============================
 let ALL_PRODUCTS = [];
 let FILTERED_PRODUCTS = [];
@@ -25,19 +28,10 @@ let ACTIVE_CATEGORY = "All";
 let CART = JSON.parse(localStorage.getItem("SM_CART") || "{}");
 
 // ===============================
-// 3) HELPERS
+// HELPERS
 // ===============================
 function saveCart() {
   localStorage.setItem("SM_CART", JSON.stringify(CART));
-}
-
-function getCartCount() {
-  return Object.values(CART).reduce((a, b) => a + b, 0);
-}
-
-function money(n) {
-  n = Number(n || 0);
-  return `₹${n}`;
 }
 
 function safeText(t) {
@@ -49,60 +43,80 @@ function toNumber(v) {
   return isNaN(n) ? 0 : n;
 }
 
+function money(n) {
+  n = Number(n || 0);
+  return `₹${n}`;
+}
+
+function getCartCount() {
+  return Object.values(CART).reduce((a, b) => a + b, 0);
+}
+
 // ===============================
-// 4) LOAD GOOGLE SHEET
+// GOOGLE SHEET LOAD
 // ===============================
 function init() {
   Tabletop.init({
     key: publicSpreadsheetUrl,
     simpleSheet: true
-  }).then((data) => {
+  })
+    .then((data) => {
 
-    ALL_PRODUCTS = data.map((row) => {
-      const mrp = toNumber(row.MRP);
-      const discount = toNumber(row.Discount);
-      const sale = toNumber(row["Sale Price"]);
+      // Aapke headers ke hisab se exact mapping
+      ALL_PRODUCTS = data
+        .map((row, index) => {
 
-      // अगर Sale Price खाली है तो auto calculate
-      let finalSale = sale;
-      if (!finalSale && mrp > 0 && discount > 0) {
-        finalSale = Math.round(mrp - (mrp * discount / 100));
-      }
-      if (!finalSale && mrp > 0) finalSale = mrp;
+          const id = safeText(row.ID) || String(index + 1);
+          const name = safeText(row.Name);
+          const category = safeText(row.Category);
 
-      return {
-        id: safeText(row.ID),
-        name: safeText(row.Name),
-        category: safeText(row.Category),
-        mrp: mrp,
-        discount: discount,
-        salePrice: finalSale,
-        stock: toNumber(row.Stock),
-        image: safeText(row.Image)
-      };
-    }).filter(p => p.id && p.name);
+          const mrp = toNumber(row.MRP);
+          const discount = toNumber(row.Discount);
+          const sheetSale = toNumber(row["Sale Price"]);
+          const stock = toNumber(row.Stock);
+          const image = safeText(row.Image);
 
-    FILTERED_PRODUCTS = [...ALL_PRODUCTS];
+          // Sale Price auto calculate (agar sheet me blank ho)
+          let finalSale = sheetSale;
+          if (!finalSale && mrp > 0 && discount > 0) {
+            finalSale = Math.round(mrp - (mrp * discount / 100));
+          }
+          if (!finalSale && mrp > 0) finalSale = mrp;
 
-    renderCategories();
-    renderOffers();
-    renderProducts();
-    updateCartUI();
+          return {
+            id,
+            name,
+            category,
+            mrp,
+            discount,
+            salePrice: finalSale,
+            stock: stock || 0,
+            image
+          };
+        })
+        .filter((p) => p.id && p.name && p.category);
 
-  }).catch((err) => {
-    console.error("Sheet Load Error:", err);
-    document.getElementById("productsGrid").innerHTML =
-      `<div class="msg">Google Sheet load nahi ho rahi. Publish link check karo.</div>`;
-  });
+      FILTERED_PRODUCTS = [...ALL_PRODUCTS];
+
+      renderCategories();
+      renderOffers();
+      renderProducts();
+      updateCartUI();
+    })
+    .catch((err) => {
+      console.error("Sheet Load Error:", err);
+      document.getElementById("productsGrid").innerHTML =
+        `<div class="msg">Google Sheet load nahi ho rahi. Publish link check karo.</div>`;
+    });
 }
 
 // ===============================
-// 5) RENDER CATEGORIES
+// CATEGORIES
 // ===============================
 function renderCategories() {
   const catRow = document.getElementById("catRow");
 
-  const cats = ["All", ...new Set(ALL_PRODUCTS.map(p => p.category).filter(Boolean))];
+  const cats = ["All", ...new Set(ALL_PRODUCTS.map((p) => p.category))];
 
   catRow.innerHTML = "";
 
@@ -114,7 +128,7 @@ function renderCategories() {
     btn.onclick = () => {
       ACTIVE_CATEGORY = cat;
 
-      document.querySelectorAll(".cat-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".cat-btn").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
 
       applyFilters();
@@ -125,7 +139,7 @@ function renderCategories() {
 }
 
 // ===============================
-// 6) SEARCH + FILTER
+// SEARCH + FILTER
 // ===============================
 document.getElementById("searchInput").addEventListener("input", () => {
   applyFilters();
@@ -139,8 +153,7 @@ function applyFilters() {
       p.name.toLowerCase().includes(q) ||
       p.category.toLowerCase().includes(q);
 
-    const matchCat =
-      ACTIVE_CATEGORY === "All" ? true : (p.category === ACTIVE_CATEGORY);
+    const matchCat = ACTIVE_CATEGORY === "All" ? true : p.category === ACTIVE_CATEGORY;
 
     return matchSearch && matchCat;
   });
@@ -149,13 +162,13 @@ function applyFilters() {
 }
 
 // ===============================
-// 7) RENDER OFFERS
+// OFFERS (Discount > 0)
 // ===============================
 function renderOffers() {
   const offersGrid = document.getElementById("offersGrid");
 
   const offers = ALL_PRODUCTS
-    .filter(p => p.discount > 0 && p.stock > 0)
+    .filter((p) => p.discount > 0 && p.stock > 0)
     .sort((a, b) => b.discount - a.discount)
     .slice(0, 12);
 
@@ -174,7 +187,7 @@ function renderOffers() {
       <div class="today-title">${p.name}</div>
       <div class="today-price">${money(p.salePrice)}</div>
       <div class="today-offer">${p.discount}% OFF</div>
-      <button class="today-btn" ${p.stock <= 0 ? "disabled" : ""}>Add to Cart</button>
+      <button class="today-btn">Add to Cart</button>
     `;
 
     card.querySelector("button").onclick = () => addToCart(p.id);
@@ -184,7 +197,7 @@ function renderOffers() {
 }
 
 // ===============================
-// 8) RENDER PRODUCTS
+// PRODUCTS
 // ===============================
 function renderProducts() {
   const grid = document.getElementById("productsGrid");
@@ -199,16 +212,13 @@ function renderProducts() {
     const card = document.createElement("div");
     card.className = "product-card";
 
-    let imgHTML = "";
-    if (p.image) {
-      imgHTML = `<img class="p-img" src="${p.image}" alt="${p.name}" onerror="this.style.display='none'">`;
-    } else {
-      imgHTML = `<div class="p-img-placeholder">No Image</div>`;
-    }
-
     const showOffer = p.discount > 0 && p.salePrice < p.mrp;
     const offerHTML = showOffer ? `<div class="offer-badge">${p.discount}% OFF</div>` : "";
     const outStockHTML = p.stock <= 0 ? `<div class="out-stock">Out of Stock</div>` : "";
+
+    const imgHTML = p.image
+      ? `<img class="p-img" src="${p.image}" alt="${p.name}" onerror="this.style.display='none'">`
+      : `<div class="p-img-placeholder">No Image</div>`;
 
     card.innerHTML = `
       ${imgHTML}
@@ -235,7 +245,7 @@ function renderProducts() {
 }
 
 // ===============================
-// 9) CART FUNCTIONS
+// CART
 // ===============================
 function addToCart(productId) {
   CART[productId] = (CART[productId] || 0) + 1;
@@ -251,11 +261,7 @@ function removeFromCart(productId) {
 
 function changeQty(productId, delta) {
   CART[productId] = (CART[productId] || 0) + delta;
-
-  if (CART[productId] <= 0) {
-    delete CART[productId];
-  }
-
+  if (CART[productId] <= 0) delete CART[productId];
   saveCart();
   updateCartUI();
 }
@@ -266,12 +272,12 @@ function updateCartUI() {
 }
 
 // ===============================
-// 10) CART MODAL
+// CART MODAL
 // ===============================
 function renderCartModal() {
   const cartItems = document.getElementById("cartItems");
-
   const ids = Object.keys(CART);
+
   cartItems.innerHTML = "";
 
   if (ids.length === 0) {
@@ -286,10 +292,10 @@ function renderCartModal() {
 
   ids.forEach((id) => {
     const qty = CART[id];
-    const p = ALL_PRODUCTS.find(x => x.id === id);
+    const p = ALL_PRODUCTS.find((x) => x.id === id);
     if (!p) return;
 
-    const price = p.salePrice || p.mrp;
+    const price = p.salePrice;
     const lineTotal = price * qty;
     subtotal += lineTotal;
 
@@ -313,7 +319,7 @@ function renderCartModal() {
   });
 
   let delivery = 0;
-  if (subtotal < 199) delivery = 20;
+  if (subtotal < MIN_ORDER_FREE_DELIVERY) delivery = DELIVERY_FEE;
 
   const total = subtotal + delivery;
 
@@ -323,7 +329,7 @@ function renderCartModal() {
 }
 
 // ===============================
-// 11) MODAL OPEN/CLOSE
+// MODAL OPEN / CLOSE
 // ===============================
 const cartModal = document.getElementById("cartModal");
 
@@ -340,7 +346,7 @@ cartModal.addEventListener("click", (e) => {
 });
 
 // ===============================
-// 12) WHATSAPP ORDER
+// WHATSAPP ORDER
 // ===============================
 document.getElementById("placeOrderBtn").addEventListener("click", () => {
   const name = safeText(document.getElementById("custName").value);
@@ -350,12 +356,13 @@ document.getElementById("placeOrderBtn").addEventListener("click", () => {
   const msgBox = document.getElementById("msgBox");
   msgBox.innerText = "";
 
+  const ids = Object.keys(CART);
+
   if (!name || !phone || !address) {
     msgBox.innerText = "Please fill Name, Phone, Address.";
     return;
   }
 
-  const ids = Object.keys(CART);
   if (ids.length === 0) {
     msgBox.innerText = "Cart is empty.";
     return;
@@ -371,10 +378,10 @@ document.getElementById("placeOrderBtn").addEventListener("click", () => {
 
   ids.forEach((id, index) => {
     const qty = CART[id];
-    const p = ALL_PRODUCTS.find(x => x.id === id);
+    const p = ALL_PRODUCTS.find((x) => x.id === id);
     if (!p) return;
 
-    const price = p.salePrice || p.mrp;
+    const price = p.salePrice;
     const lineTotal = price * qty;
     subtotal += lineTotal;
 
@@ -382,7 +389,7 @@ document.getElementById("placeOrderBtn").addEventListener("click", () => {
   });
 
   let delivery = 0;
-  if (subtotal < 199) delivery = 20;
+  if (subtotal < MIN_ORDER_FREE_DELIVERY) delivery = DELIVERY_FEE;
 
   const total = subtotal + delivery;
 
@@ -395,14 +402,14 @@ document.getElementById("placeOrderBtn").addEventListener("click", () => {
 });
 
 // ===============================
-// 13) CALL BUTTON
+// CALL BUTTON
 // ===============================
 document.getElementById("callBtn").addEventListener("click", () => {
   window.location.href = `tel:${CALL_NUMBER}`;
 });
 
 // ===============================
-// 14) UPI PAYMENT BUTTON
+// UPI PAY BUTTON
 // ===============================
 document.getElementById("payUpiBtn").addEventListener("click", () => {
 
@@ -416,15 +423,14 @@ document.getElementById("payUpiBtn").addEventListener("click", () => {
 
   ids.forEach((id) => {
     const qty = CART[id];
-    const p = ALL_PRODUCTS.find(x => x.id === id);
+    const p = ALL_PRODUCTS.find((x) => x.id === id);
     if (!p) return;
 
-    const price = p.salePrice || p.mrp;
-    subtotal += price * qty;
+    subtotal += p.salePrice * qty;
   });
 
   let delivery = 0;
-  if (subtotal < 199) delivery = 20;
+  if (subtotal < MIN_ORDER_FREE_DELIVERY) delivery = DELIVERY_FEE;
 
   const total = subtotal + delivery;
 
@@ -438,6 +444,6 @@ document.getElementById("payUpiBtn").addEventListener("click", () => {
 });
 
 // ===============================
-// 15) START
+// START
 // ===============================
 window.addEventListener("DOMContentLoaded", init);
