@@ -402,3 +402,20 @@ body {
   opacity: 0.7;
   font-weight: 900;
 }
+
+/* FIX: Cart items + checkout both visible */
+.drawer {
+  display: flex;
+  flex-direction: column;
+}
+
+.drawerBody {
+  max-height: 35vh;   /* cart items area */
+  overflow-y: auto;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.drawerFooter {
+  max-height: 65vh;   /* checkout form area */
+  overflow-y: auto;
+}
