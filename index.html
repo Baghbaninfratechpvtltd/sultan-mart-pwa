@@ -5,18 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sultan Mart Bharatganj</title>
 
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#0ea5e9" />
 
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
 
+<body>
+  <!-- Header -->
   <header class="header">
     <div>
       <h1>Sultan Mart Bharatganj</h1>
-      <p class="sub">Online Grocery • 7 AM – 10 PM</p>
-      <p class="sub2">Minimum Order: ₹199 • Bharatganj Free Delivery</p>
+      <p class="sub">🕒 7 AM – 10 PM | COD + UPI | Min ₹199</p>
     </div>
 
     <button id="cartBtn" class="cart-btn">
@@ -24,82 +24,84 @@
     </button>
   </header>
 
-  <section class="controls">
-    <input id="searchInput" type="text" placeholder="Search products..." />
-
-    <select id="categoryFilter">
-      <option value="All">All</option>
-      <option value="Atta / Flour">Atta / Flour</option>
-      <option value="Rice / Chawal">Rice / Chawal</option>
-      <option value="Dal / Pulses">Dal / Pulses</option>
-      <option value="Oil / Ghee">Oil / Ghee</option>
-      <option value="Spices">Spices</option>
-      <option value="Snacks">Snacks</option>
-      <option value="Tea / Coffee">Tea / Coffee</option>
-      <option value="Daily Use">Daily Use</option>
-      <option value="Soap / Cleaning">Soap / Cleaning</option>
-      <option value="Biscuits">Biscuits</option>
-      <option value="Cold Drinks">Cold Drinks</option>
-    </select>
+  <!-- Search -->
+  <section class="search-wrap">
+    <input id="searchInput" type="text" placeholder="Search product..." />
   </section>
 
-  <main>
-    <div id="products" class="products"></div>
+  <!-- Today Offers -->
+  <section class="today-wrap">
+    <h2>🔥 आज का Offer</h2>
+    <div id="todayOffers" class="today-grid"></div>
+  </section>
+
+  <!-- Categories -->
+  <section class="cat-wrap">
+    <h2>📦 Categories</h2>
+    <div id="categories" class="cat-row"></div>
+  </section>
+
+  <!-- Products -->
+  <main class="main">
+    <h2>🛍️ Products</h2>
+    <div id="products" class="grid"></div>
   </main>
 
-  <!-- CART MODAL -->
+  <!-- Cart Modal -->
   <div id="cartModal" class="modal">
     <div class="modal-box">
+
       <div class="modal-head">
-        <h2>Your Cart</h2>
-        <button id="closeCart" type="button" class="close-btn">✖</button>
+        <h2>🛒 Your Cart</h2>
+        <button id="closeCart" class="close-btn">✖</button>
       </div>
 
       <div id="cartItems" class="cart-items"></div>
 
-      <div class="summary">
-        <div class="row">
+      <div class="bill">
+        <div class="bill-row">
           <span>Subtotal</span>
           <b id="subtotal">₹0</b>
         </div>
 
-        <div class="row">
+        <div class="bill-row">
           <span>Delivery Area</span>
           <select id="deliveryArea">
-            <option value="Bharatganj (Free)">Bharatganj (Free)</option>
-            <option value="Nearby (₹10)">Nearby (₹10)</option>
-            <option value="Far (₹20)">Far (₹20)</option>
+            <option>Bharatganj (Free)</option>
+            <option>Nearby (₹10)</option>
+            <option>Far (₹20)</option>
           </select>
         </div>
 
-        <div class="row">
+        <div class="bill-row">
           <span>Delivery Charge</span>
           <b id="deliveryCharge">₹0</b>
         </div>
 
-        <div class="row total">
+        <div class="bill-row total">
           <span>Total</span>
           <b id="total">₹0</b>
         </div>
-
-        <p class="note">Minimum order ₹199 required.</p>
       </div>
 
-      <div class="checkout">
-        <h3>Customer Details</h3>
-
-        <input id="customerName" type="text" placeholder="Full Name" />
-        <input id="customerPhone" type="tel" placeholder="Mobile Number" />
+      <div class="form">
+        <input id="customerName" placeholder="Your Name" />
+        <input id="customerPhone" placeholder="Phone Number" />
         <textarea id="customerAddress" placeholder="Full Address"></textarea>
-        <input id="customerLandmark" type="text" placeholder="Landmark (optional)" />
+        <input id="customerLandmark" placeholder="Landmark (optional)" />
 
         <select id="paymentMethod">
           <option value="COD">Cash on Delivery (COD)</option>
           <option value="UPI">UPI Payment</option>
         </select>
 
-        <button id="placeOrderBtn" class="order-btn">✅ Place Order on WhatsApp</button>
-        <button id="callShopBtn" class="call-btn">📞 Call Shop</button>
+        <button id="placeOrderBtn" class="order-btn">
+          ✅ Place Order on WhatsApp
+        </button>
+
+        <button id="callShopBtn" class="call-btn">
+          📞 Call Shop
+        </button>
 
         <p id="msgBox" class="msg"></p>
       </div>
@@ -107,6 +109,5 @@
   </div>
 
   <script src="app.js"></script>
-
 </body>
 </html>
