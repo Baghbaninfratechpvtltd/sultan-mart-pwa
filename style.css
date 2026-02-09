@@ -419,3 +419,36 @@ body {
   max-height: 65vh;   /* checkout form area */
   overflow-y: auto;
 }
+
+.cartActions{
+  display:flex;
+  gap:10px;
+  margin:12px 0;
+}
+
+.btnCall{
+  flex:1;
+  padding:12px;
+  border:none;
+  border-radius:12px;
+  font-weight:700;
+  cursor:pointer;
+  background:#111;
+  color:#fff;
+  text-align:center;
+  text-decoration:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.btnWhatsapp{
+  flex:1;
+  padding:12px;
+  border:none;
+  border-radius:12px;
+  font-weight:700;
+  cursor:pointer;
+  background:#25D366;
+  color:#fff;
+}
