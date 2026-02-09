@@ -1,6 +1,6 @@
 // ===============================
 // Sultan Mart Bharatganj - PWA
-// Google Sheet + Images + Offers
+// Google Sheet + Images + Offers + Stock
 // ===============================
 
 const SHOP_NAME = "Sultan Mart Bharatganj";
@@ -75,7 +75,7 @@ function updateCartCount() {
 }
 
 function getSubtotal() {
-  return cart.reduce((s, i) => s + i.finalPrice * i.qty, 0);
+  return cart.reduce((s, i) => s.finalPrice * i.qty + s, 0);
 }
 
 function getDeliveryCharge() {
@@ -123,8 +123,6 @@ function parseCSVLine(line) {
 
 // ===============================
 // Load Products from Google Sheet
-// Required columns in Sheet:
-// name,price,discount_price,offer_text,category,stock,today_offer,image
 // ===============================
 async function loadProductsFromSheet() {
   try {
@@ -153,14 +151,6 @@ async function loadProductsFromSheet() {
     const idxStock = getIndex("stock");
     const idxToday = getIndex("today_offer");
     const idxImage = getIndex("image");
-
-    if (idxName === -1 || idxPrice === -1 || idxCategory === -1) {
-      productsDiv.innerHTML = `<p style="padding:15px;color:red;font-weight:bold;">
-      Sheet headers गलत हैं!<br>
-      Row1 में minimum: name, price, category होना चाहिए.
-      </p>`;
-      return;
-    }
 
     const list = [];
 
@@ -210,9 +200,7 @@ async function loadProductsFromSheet() {
     renderProducts();
   } catch (err) {
     console.log("Sheet Load Error:", err);
-    productsDiv.innerHTML = `<p style="padding:15px;color:red;font-weight:bold;">
-    Products load नहीं हो रहे. Publish to web + CSV check करो.
-    </p>`;
+    productsDiv.innerHTML = `<p style="padding:15px;color:red;font-weight:bold;">Products load नहीं हो रहे. Publish to web + CSV check करो.</p>`;
   }
 }
 
@@ -258,7 +246,7 @@ function renderTodayOffers() {
 
     box.innerHTML = `
       <div class="today-title">🔥 ${p.name}</div>
-      <div class="today-price">${formatMoney(p.finalPrice)}</div>
+      <div class="today-price">₹${p.finalPrice}</div>
       ${
         p.offer_text
           ? `<div class="today-offer">${p.offer_text}</div>`
@@ -267,7 +255,7 @@ function renderTodayOffers() {
       <button class="today-btn" ${
         p.stock === "out" ? "disabled" : ""
       } onclick="addToCart(${p.id})">
-        ${p.stock === "out" ? "Out of Stock" : "Add"}
+        ${p.stock === "out" ? "Out of Stock" : "Add to Cart"}
       </button>
     `;
 
@@ -316,9 +304,9 @@ function renderProducts() {
       <div class="p-price">
         ${
           showDiscount
-            ? `<span class="old-price">${formatMoney(p.price)}</span> 
-               <span class="new-price">${formatMoney(p.finalPrice)}</span>`
-            : `<span class="new-price">${formatMoney(p.finalPrice)}</span>`
+            ? `<span class="old-price">₹${p.price}</span>
+               <span class="new-price">₹${p.finalPrice}</span>`
+            : `<span class="new-price">₹${p.finalPrice}</span>`
         }
       </div>
 
@@ -352,9 +340,7 @@ function addToCart(productId) {
   msgBox.innerText = "";
 
   const p = products.find((x) => x.id === productId);
-  if (!p) return;
-
-  if (p.stock === "out") return;
+  if (!p || p.stock === "out") return;
 
   const ex = cart.find((x) => x.id === productId);
 
@@ -362,6 +348,7 @@ function addToCart(productId) {
   else cart.push({ ...p, qty: 1 });
 
   saveCart();
+  renderCart();
 }
 
 function openCart() {
@@ -377,7 +364,7 @@ function renderCart() {
   cartItems.innerHTML = "";
 
   if (cart.length === 0) {
-    cartItems.innerHTML = `<p style="text-align:center;">Cart empty hai 😅</p>`;
+    cartItems.innerHTML = `<p style="text-align:center;">Cart empty 😅</p>`;
   }
 
   cart.forEach((item) => {
@@ -387,7 +374,7 @@ function renderCart() {
     row.innerHTML = `
       <div>
         <b>${item.name}</b>
-        <div>${formatMoney(item.finalPrice)} × ${item.qty}</div>
+        <div>₹${item.finalPrice} × ${item.qty}</div>
       </div>
 
       <div class="cart-actions">
@@ -399,9 +386,7 @@ function renderCart() {
 
     row.querySelector(".minus").addEventListener("click", () => {
       item.qty -= 1;
-      if (item.qty <= 0) {
-        cart = cart.filter((x) => x.id !== item.id);
-      }
+      if (item.qty <= 0) cart = cart.filter((x) => x.id !== item.id);
       saveCart();
       renderCart();
     });
@@ -433,7 +418,7 @@ function placeOrder() {
   msgBox.innerText = "";
 
   if (cart.length === 0) {
-    msgBox.innerText = "Cart empty hai! Pehle product add karo.";
+    msgBox.innerText = "Cart empty! Add products first.";
     return;
   }
 
@@ -443,13 +428,13 @@ function placeOrder() {
   const landmark = customerLandmarkEl.value.trim();
 
   if (!name || !phone || !address) {
-    msgBox.innerText = "Name, Phone aur Address fill karo 🙏";
+    msgBox.innerText = "Name, Phone, Address fill करो!";
     return;
   }
 
   const subtotal = getSubtotal();
   if (subtotal < MIN_ORDER) {
-    msgBox.innerText = `Minimum order ₹${MIN_ORDER} required 🙏`;
+    msgBox.innerText = `Minimum order ₹${MIN_ORDER} required`;
     return;
   }
 
@@ -466,23 +451,23 @@ function placeOrder() {
 
   msg += `%0A🧾 *Order Items:*%0A`;
   cart.forEach((i) => {
-    msg += `• ${i.name} (${i.qty}) = ${formatMoney(i.finalPrice * i.qty)}%0A`;
+    msg += `• ${i.name} (${i.qty}) = ₹${i.finalPrice * i.qty}%0A`;
   });
 
   msg += `%0A--------------------%0A`;
-  msg += `Subtotal: ${formatMoney(subtotal)}%0A`;
-  msg += `Delivery: ${formatMoney(delivery)}%0A`;
-  msg += `*Total: ${formatMoney(total)}*%0A`;
+  msg += `Subtotal: ₹${subtotal}%0A`;
+  msg += `Delivery: ₹${delivery}%0A`;
+  msg += `*Total: ₹${total}*%0A`;
   msg += `--------------------%0A%0A`;
 
   if (payment === "UPI") {
     msg += `💳 Payment: UPI%0A`;
     msg += `UPI ID: ${UPI_ID}%0A`;
   } else {
-    msg += `💵 Payment: Cash on Delivery (COD)%0A`;
+    msg += `💵 Payment: COD%0A`;
   }
 
-  msg += `%0A✅ Order Confirm kar do 🙏`;
+  msg += `%0A✅ Order Confirm कर दो 🙏`;
 
   const url = `https://wa.me/91${WHATSAPP_NUMBER}?text=${msg}`;
   window.open(url, "_blank");
@@ -493,7 +478,6 @@ function placeOrder() {
 // ===============================
 cartBtn.addEventListener("click", openCart);
 closeCart.addEventListener("click", closeCartModal);
-
 cartModal.addEventListener("click", (e) => {
   if (e.target === cartModal) closeCartModal();
 });
