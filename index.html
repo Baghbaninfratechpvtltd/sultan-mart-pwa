@@ -5,110 +5,92 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sultan Mart Bharatganj</title>
 
-  <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#111111" />
+  <meta name="theme-color" content="#0b0b0c" />
 
-  <!-- CSS -->
   <link rel="stylesheet" href="style.css" />
-
-  <!-- Tabletop (Google Sheet) -->
-  <script src="https://cdn.jsdelivr.net/npm/tabletop@1.5.1/src/tabletop.min.js"></script>
 </head>
-
 <body>
 
   <!-- HEADER -->
-  <header class="top-header">
+  <header class="topbar">
     <div class="brand">
-      <div class="brand-title">Sultan Mart Bharatganj</div>
-      <div class="brand-sub">Online Grocery • 7 AM – 10 PM</div>
-      <div class="brand-sub">Minimum Order: ₹199 • Bharatganj Free Delivery</div>
+      <h1>Sultan Mart Bharatganj</h1>
+      <p>Online Grocery • 7 AM – 10 PM</p>
+      <p class="sub">Minimum Order: ₹199 • Bharatganj Free Delivery</p>
     </div>
 
-    <button class="cart-btn" id="openCartBtn">
+    <button class="cartBtn" id="cartOpenBtn">
       🛒 Cart <span id="cartCount">0</span>
     </button>
   </header>
 
-  <!-- SEARCH -->
-  <section class="search-section">
-    <input type="text" id="searchInput" placeholder="Search products..." />
-  </section>
+  <!-- MAIN -->
+  <main class="container">
 
-  <!-- CATEGORIES -->
-  <section class="cat-section">
-    <div class="cat-row" id="catRow"></div>
-  </section>
-
-  <!-- OFFERS -->
-  <section class="offers-section">
-    <h2 class="sec-title">🔥 Today’s Offers</h2>
-    <div class="offers-grid" id="offersGrid"></div>
-  </section>
-
-  <!-- PRODUCTS -->
-  <section class="products-section">
-    <h2 class="sec-title">🛍 All Products</h2>
-    <div class="products-grid" id="productsGrid"></div>
-  </section>
-
-  <!-- CART MODAL -->
-  <div class="modal" id="cartModal">
-    <div class="modal-box">
-
-      <div class="modal-head">
-        <div class="modal-title">🛒 Your Cart</div>
-        <button class="close-btn" id="closeCartBtn">✖</button>
-      </div>
-
-      <div class="cart-items" id="cartItems"></div>
-
-      <div class="bill-box">
-        <div class="bill-row">
-          <span>Subtotal</span>
-          <span id="subtotal">₹0</span>
-        </div>
-        <div class="bill-row">
-          <span>Delivery Fee</span>
-          <span id="deliveryFee">₹0</span>
-        </div>
-        <div class="bill-row total">
-          <span>Total</span>
-          <span id="totalBill">₹0</span>
-        </div>
-      </div>
-
-      <div class="form-box">
-        <input id="custName" type="text" placeholder="Your Name" />
-        <input id="custPhone" type="tel" placeholder="Phone Number" />
-        <textarea id="custAddress" placeholder="Full Address"></textarea>
-      </div>
-
-      <div class="msg" id="msgBox"></div>
-
-      <div class="btn-row">
-        <button class="order-btn" id="placeOrderBtn">📲 Place Order on WhatsApp</button>
-        <button class="call-btn" id="callBtn">📞 Call Shop</button>
-        <button class="pay-btn" id="payUpiBtn">💳 Pay via UPI</button>
-      </div>
-
-      <div class="note">
-        ⚡ Tip: UPI payment ke baad WhatsApp par screenshot bhej dena.
-      </div>
-
+    <!-- Search -->
+    <div class="searchWrap">
+      <input type="text" id="searchInput" placeholder="Search products..." />
     </div>
-  </div>
 
-  <!-- JS -->
+    <!-- Category -->
+    <div class="categoryWrap">
+      <button class="catBtn active" data-cat="All">All</button>
+      <div id="categoryButtons"></div>
+    </div>
+
+    <!-- Offers -->
+    <section class="section">
+      <h2>🔥 Today’s Offers</h2>
+      <div class="grid" id="offersGrid"></div>
+    </section>
+
+    <!-- Products -->
+    <section class="section">
+      <h2>🛍️ All Products</h2>
+      <div class="grid" id="productsGrid"></div>
+    </section>
+
+  </main>
+
+  <!-- CART DRAWER -->
+  <div class="drawerOverlay" id="drawerOverlay"></div>
+
+  <aside class="drawer" id="cartDrawer">
+    <div class="drawerHeader">
+      <h3>Your Cart</h3>
+      <button class="closeBtn" id="cartCloseBtn">✖</button>
+    </div>
+
+    <div class="drawerBody" id="cartItems"></div>
+
+    <div class="drawerFooter">
+      <div class="totals">
+        <div>
+          <span>Total</span>
+          <strong id="cartTotal">₹0</strong>
+        </div>
+        <div>
+          <span>Items</span>
+          <strong id="cartItemsCount">0</strong>
+        </div>
+      </div>
+
+      <div class="minOrderNote" id="minOrderNote">
+        Minimum order is ₹199
+      </div>
+
+      <button class="whatsappBtn" id="whatsappOrderBtn">
+        Order on WhatsApp
+      </button>
+
+      <div class="upiBox">
+        <div class="upiTitle">UPI Payment</div>
+        <div class="upiId">9559868648@ptyes</div>
+      </div>
+    </div>
+  </aside>
+
   <script src="app.js"></script>
-
-  <!-- SERVICE WORKER -->
-  <script>
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./service-worker.js");
-    }
-  </script>
-
 </body>
 </html>
