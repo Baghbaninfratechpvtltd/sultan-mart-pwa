@@ -6,11 +6,10 @@ const SHEET_CSV_URL =
 
 const SHOP_PHONE = "9559868648";
 const SHOP_WHATSAPP = "9559868648";
-const MIN_ORDER = 199;
+const UPI_ID = "9559868648@ptyes";
 
-// Delivery
-const FREE_AREA = "Bharatganj";
-const PAID_DELIVERY_CHARGE = 20;
+const MIN_ORDER = 199;
+const OTHER_AREA_CHARGE = 20;
 
 // =======================
 // DOM
@@ -26,13 +25,29 @@ const cartBackdrop = document.getElementById("cartBackdrop");
 const cartModal = document.getElementById("cartModal");
 
 const cartItemsEl = document.getElementById("cartItems");
-const cartTotalEl = document.getElementById("cartTotal");
 const cartCountEl = document.getElementById("cartCount");
+
+const subTotalEl = document.getElementById("subTotal");
+const deliveryChargeEl = document.getElementById("deliveryCharge");
+const grandTotalEl = document.getElementById("grandTotal");
+const orderIdEl = document.getElementById("orderId");
 
 const whatsappBtn = document.getElementById("whatsappBtn");
 const confirmBtn = document.getElementById("confirmBtn");
 const clearCartBtn = document.getElementById("clearCartBtn");
-const callBtn = document.getElementById("callBtn");
+
+const copyUpiBtn = document.getElementById("copyUpiBtn");
+const upiText = document.getElementById("upiText");
+
+// Form
+const custName = document.getElementById("custName");
+const custMobile = document.getElementById("custMobile");
+const custAddress = document.getElementById("custAddress");
+const custArea = document.getElementById("custArea");
+const custDay = document.getElementById("custDay");
+const custTime = document.getElementById("custTime");
+const paymentMethod = document.getElementById("paymentMethod");
+const custNote = document.getElementById("custNote");
 
 // =======================
 // STATE
@@ -42,28 +57,12 @@ let selectedCategory = "All";
 let searchQuery = "";
 
 let cart = JSON.parse(localStorage.getItem("cart_sultanmart") || "[]");
-
-// Customer form data
 let customer = JSON.parse(localStorage.getItem("customer_sultanmart") || "{}");
+let orderId = localStorage.getItem("order_id_sultanmart") || "";
 
 // =======================
 // HELPERS
 // =======================
-function parseCSV(csvText) {
-  const rows = csvText.trim().split("\n").map(r => r.split(","));
-  const headers = rows[0].map(h => h.trim());
-  const data = [];
-
-  for (let i = 1; i < rows.length; i++) {
-    const obj = {};
-    rows[i].forEach((val, idx) => {
-      obj[headers[idx]] = (val || "").trim();
-    });
-    data.push(obj);
-  }
-  return data;
-}
-
 function toNumber(v) {
   const n = Number(String(v || "").replace(/[^\d.]/g, ""));
   return isNaN(n) ? 0 : n;
@@ -78,15 +77,16 @@ function getDiscountPercent(mrp, sale) {
 function saveCart() {
   localStorage.setItem("cart_sultanmart", JSON.stringify(cart));
 }
-
 function saveCustomer() {
   localStorage.setItem("customer_sultanmart", JSON.stringify(customer));
+}
+function saveOrderId() {
+  localStorage.setItem("order_id_sultanmart", orderId);
 }
 
 function cartCount() {
   return cart.reduce((sum, item) => sum + item.qty, 0);
 }
-
 function cartSubTotal() {
   return cart.reduce((sum, item) => sum + item.qty * item.salePrice, 0);
 }
@@ -94,34 +94,49 @@ function cartSubTotal() {
 function getDeliveryCharge() {
   if (!customer.area) return 0;
   if (customer.area === "Bharatganj") return 0;
-  return PAID_DELIVERY_CHARGE;
+  if (customer.area === "Other") return OTHER_AREA_CHARGE;
+  return 0;
 }
 
 function cartGrandTotal() {
   return cartSubTotal() + getDeliveryCharge();
 }
 
-// =======================
-// MODAL OPEN/CLOSE
-// =======================
+function generateOrderId() {
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, "0");
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const yy = String(now.getFullYear()).slice(-2);
+  const rnd = Math.floor(100 + Math.random() * 900);
+  return `${dd}${mm}${yy}-${rnd}`;
+}
+
+function updateCartUI() {
+  cartCountEl.textContent = cartCount();
+}
+
 function openCart() {
   cartBackdrop.style.display = "block";
   cartModal.style.display = "block";
   renderCart();
 }
-
 function closeCart() {
   cartBackdrop.style.display = "none";
   cartModal.style.display = "none";
 }
 
 // =======================
-// CART FUNCTIONS
+// CART ACTIONS
 // =======================
 function addToCart(product) {
   const found = cart.find(i => i.id === product.id);
   if (found) found.qty += 1;
   else cart.push({ ...product, qty: 1 });
+
+  if (!orderId) {
+    orderId = generateOrderId();
+    saveOrderId();
+  }
 
   saveCart();
   updateCartUI();
@@ -134,6 +149,11 @@ function changeQty(id, delta) {
   item.qty += delta;
   if (item.qty <= 0) cart = cart.filter(i => i.id !== id);
 
+  if (cart.length === 0) {
+    orderId = "";
+    saveOrderId();
+  }
+
   saveCart();
   updateCartUI();
   renderCart();
@@ -141,33 +161,63 @@ function changeQty(id, delta) {
 
 function clearCart() {
   cart = [];
+  orderId = "";
   saveCart();
+  saveOrderId();
   updateCartUI();
   renderCart();
 }
 
-function updateCartUI() {
-  cartCountEl.textContent = cartCount();
+// =======================
+// RENDER CART
+// =======================
+function renderCart() {
+  orderIdEl.textContent = orderId || "----";
+
+  if (cart.length === 0) {
+    cartItemsEl.innerHTML = `<div style="opacity:.7;padding:10px 0;">Cart is empty</div>`;
+  } else {
+    cartItemsEl.innerHTML = cart.map(item => `
+      <div class="cart-item">
+        <div>
+          <div class="cart-item-name">${item.name}</div>
+          <div style="opacity:.7;font-size:12px;">₹${item.salePrice} each</div>
+        </div>
+
+        <div class="qty-controls">
+          <button class="qty-btn" onclick="window.__changeQty('${item.id}',-1)">-</button>
+          <div class="qty">${item.qty}</div>
+          <button class="qty-btn" onclick="window.__changeQty('${item.id}',1)">+</button>
+        </div>
+
+        <div class="cart-item-price">₹${item.qty * item.salePrice}</div>
+      </div>
+    `).join("");
+  }
+
+  subTotalEl.textContent = cartSubTotal();
+  deliveryChargeEl.textContent = getDeliveryCharge();
+  grandTotalEl.textContent = cartGrandTotal();
 }
 
 // =======================
-// PRODUCTS RENDER
+// PRODUCT CARD
 // =======================
 function productCard(p) {
   const mrp = toNumber(p.MRP);
-  const sale = toNumber(p["Sale Price"]);
-  const stock = toNumber(p.Stock);
+  const sale = toNumber(p.sale);
+  const stock = toNumber(p.stock);
   const disc = getDiscountPercent(mrp, sale);
 
   const outOfStock = stock <= 0;
 
   return `
     <div class="product-card">
-      <img class="product-img" src="${p.Image}" alt="${p.Name}" onerror="this.src='assets/logo.png'" />
+      <img class="product-img" src="${p.image}" alt="${p.name}" onerror="this.src='assets/logo.png'"/>
 
       <div>
-        <div class="product-name">${p.Name}</div>
-        <div class="product-cat">${p.Category || ""}</div>
+        <div class="product-name">${p.name}</div>
+        <div class="product-cat">${p.category}</div>
       </div>
 
       <div class="price-row">
@@ -178,16 +228,59 @@ function productCard(p) {
 
       <div class="stock">${outOfStock ? "❌ Out of Stock" : `Stock: ${stock}`}</div>
 
-      <button class="btn-add" ${outOfStock ? "disabled" : ""} onclick="window.__addToCart('${p.ID}')">
+      <button class="btn-add" ${outOfStock ? "disabled" : ""} onclick="window.__addToCart('${p.id}')">
         ${outOfStock ? "Out of Stock" : "Add to Cart"}
       </button>
     </div>
   `;
 }
 
-function renderCategories() {
-  const cats = ["All", ...new Set(allProducts.map(p => (p.Category || "").trim()).filter(Boolean))];
+// =======================
+// FILTER + SORT (TRENDING/OFFER TOP)
+// =======================
+function filteredProducts() {
+  let list = allProducts.filter(p => {
+    const matchesCat = selectedCategory === "All" || p.category === selectedCategory;
+    const q = searchQuery;
+    const matchesSearch =
+      p.name.toLowerCase().includes(q) ||
+      p.category.toLowerCase().includes(q);
+    return matchesCat && matchesSearch;
+  });
 
+  // Sorting:
+  // 1) Offer first
+  // 2) In-stock first
+  // 3) By stock high -> low
+  list.sort((a, b) => {
+    const aMrp = toNumber(a.MRP);
+    const bMrp = toNumber(b.MRP);
+    const aSale = toNumber(a.sale);
+    const bSale = toNumber(b.sale);
+
+    const aDisc = getDiscountPercent(aMrp, aSale);
+    const bDisc = getDiscountPercent(bMrp, bSale);
+
+    const aStock = toNumber(a.stock);
+    const bStock = toNumber(b.stock);
+
+    // Offer
+    if (bDisc !== aDisc) return bDisc - aDisc;
+
+    // In stock
+    const aIn = aStock > 0 ? 1 : 0;
+    const bIn = bStock > 0 ? 1 : 0;
+    if (bIn !== aIn) return bIn - aIn;
+
+    // Stock high
+    return bStock - aStock;
+  });
+
+  return list;
+}
+
+function renderCategories() {
+  const cats = ["All", ...new Set(allProducts.map(p => p.category).filter(Boolean))];
   categoryChips.innerHTML = cats.map(cat => `
     <button class="chip ${cat === selectedCategory ? "active" : ""}" onclick="window.__selectCategory('${cat}')">
       ${cat}
@@ -195,210 +288,96 @@ function renderCategories() {
   `).join("");
 }
 
-function filteredProducts() {
-  return allProducts.filter(p => {
-    const name = (p.Name || "").toLowerCase();
-    const cat = (p.Category || "").toLowerCase();
-
-    const matchesSearch =
-      name.includes(searchQuery) || cat.includes(searchQuery);
-
-    const matchesCat =
-      selectedCategory === "All" || (p.Category || "") === selectedCategory;
-
-    return matchesSearch && matchesCat;
-  });
-}
-
 function renderProducts() {
   const list = filteredProducts();
 
-  // Offers first
-  const offers = list.filter(p => {
-    const mrp = toNumber(p.MRP);
-    const sale = toNumber(p["Sale Price"]);
-    return getDiscountPercent(mrp, sale) > 0;
-  });
+  // Offers top
+  const offers = list.filter(p => getDiscountPercent(toNumber(p.MRP), toNumber(p.sale)) > 0);
 
   offersGrid.innerHTML = offers.map(productCard).join("") || `<div style="opacity:.7">No offers available</div>`;
   productsGrid.innerHTML = list.map(productCard).join("") || `<div style="opacity:.7">No products found</div>`;
 }
 
 // =======================
-// CART RENDER (FULL DETAILS)
+// CSV LOAD
 // =======================
-function renderCart() {
-  if (cart.length === 0) {
-    cartItemsEl.innerHTML = `
-      <div style="opacity:.7; padding: 10px 0;">Cart is empty</div>
-    `;
-    cartTotalEl.textContent = "0";
-    return;
-  }
+async function loadProducts() {
+  try {
+    const res = await fetch(SHEET_CSV_URL);
+    const csv = await res.text();
 
-  // Customer form inside cart
-  cartItemsEl.innerHTML = `
-    <div style="padding-bottom:12px;">
-      <div style="font-weight:900; margin-bottom:8px;">👤 Customer Details</div>
+    const lines = csv.trim().split("\n");
+    const headers = lines[0].split(",").map(h => h.trim());
 
-      <div style="display:grid; gap:8px;">
-        <input id="custName" placeholder="Customer Name" value="${customer.name || ""}" style="padding:12px;border-radius:14px;border:1px solid #ddd;width:100%;" />
-        <input id="custMobile" placeholder="Mobile Number" value="${customer.mobile || ""}" style="padding:12px;border-radius:14px;border:1px solid #ddd;width:100%;" />
-        <input id="custAddress" placeholder="Full Address" value="${customer.address || ""}" style="padding:12px;border-radius:14px;border:1px solid #ddd;width:100%;" />
+    const idx = (name) => headers.indexOf(name);
 
-        <select id="custArea" style="padding:12px;border-radius:14px;border:1px solid #ddd;width:100%;">
-          <option value="">Select Area</option>
-          <option value="Bharatganj" ${customer.area === "Bharatganj" ? "selected" : ""}>Bharatganj (Free Delivery)</option>
-          <option value="Other" ${customer.area === "Other" ? "selected" : ""}>Other Area (₹20 Delivery)</option>
-        </select>
+    const data = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(",");
 
-        <select id="custTime" style="padding:12px;border-radius:14px;border:1px solid #ddd;width:100%;">
-          <option value="">Select Delivery Time</option>
-          <option value="Morning" ${customer.time === "Morning" ? "selected" : ""}>Morning (7 AM – 11 AM)</option>
-          <option value="Afternoon" ${customer.time === "Afternoon" ? "selected" : ""}>Afternoon (12 PM – 4 PM)</option>
-          <option value="Evening" ${customer.time === "Evening" ? "selected" : ""}>Evening (5 PM – 9 PM)</option>
-        </select>
+      const obj = {
+        id: (cols[idx("ID")] || "").trim(),
+        name: (cols[idx("Name")] || "").trim(),
+        category: (cols[idx("Category")] || "").trim(),
+        MRP: (cols[idx("MRP")] || "").trim(),
+        sale: (cols[idx("Sale Price")] || "").trim(),
+        stock: (cols[idx("Stock")] || "").trim(),
+        image: (cols[idx("Image")] || "").trim() || "assets/logo.png",
+      };
 
-        <textarea id="custNote" placeholder="Any Note (optional)" style="padding:12px;border-radius:14px;border:1px solid #ddd;width:100%;min-height:70px;">${customer.note || ""}</textarea>
-      </div>
-    </div>
-
-    <div style="font-weight:900; margin: 8px 0;">🛒 Items</div>
-
-    ${cart.map(item => `
-      <div class="cart-item">
-        <div>
-          <div class="cart-item-name">${item.name}</div>
-          <div style="opacity:.7; font-size:12px;">₹${item.salePrice} each</div>
-        </div>
-
-        <div class="qty-controls">
-          <button class="qty-btn" onclick="window.__changeQty('${item.id}', -1)">-</button>
-          <div class="qty">${item.qty}</div>
-          <button class="qty-btn" onclick="window.__changeQty('${item.id}', 1)">+</button>
-        </div>
-
-        <div class="cart-item-price">₹${item.qty * item.salePrice}</div>
-      </div>
-    `).join("")}
-  `;
-
-  // Save customer live
-  setTimeout(() => {
-    const nameEl = document.getElementById("custName");
-    const mobEl = document.getElementById("custMobile");
-    const addEl = document.getElementById("custAddress");
-    const areaEl = document.getElementById("custArea");
-    const timeEl = document.getElementById("custTime");
-    const noteEl = document.getElementById("custNote");
-
-    function update() {
-      customer.name = nameEl.value.trim();
-      customer.mobile = mobEl.value.trim();
-      customer.address = addEl.value.trim();
-      customer.area = areaEl.value;
-      customer.time = timeEl.value;
-      customer.note = noteEl.value.trim();
-      saveCustomer();
-
-      cartTotalEl.textContent = cartGrandTotal();
+      if (obj.id && obj.name) data.push(obj);
     }
 
-    [nameEl, mobEl, addEl, areaEl, timeEl, noteEl].forEach(el => {
-      el.addEventListener("input", update);
-      el.addEventListener("change", update);
-    });
+    allProducts = data;
 
-    cartTotalEl.textContent = cartGrandTotal();
-  }, 50);
+    renderCategories();
+    renderProducts();
+    updateCartUI();
+    renderCart();
+  } catch (e) {
+    offersGrid.innerHTML = `<div style="color:red;font-weight:900;">CSV Link Wrong / Sheet Not Public</div>`;
+    productsGrid.innerHTML = `<div style="color:red;font-weight:900;">CSV Link Wrong / Sheet Not Public</div>`;
+    console.log(e);
+  }
 }
 
 // =======================
 // WHATSAPP MESSAGE
 // =======================
 function buildWhatsAppMessage() {
-  let msg = `🛒 *Sultan Mart Bharatganj*\n\n`;
+  let msg = `🛒 *Sultan Mart Bharatganj*\n`;
   msg += `📌 *New Order*\n\n`;
+
+  msg += `🧾 Order ID: *#${orderId || generateOrderId()}*\n\n`;
 
   msg += `👤 Name: ${customer.name || "-"}\n`;
   msg += `📞 Mobile: ${customer.mobile || "-"}\n`;
   msg += `🏠 Address: ${customer.address || "-"}\n`;
   msg += `📍 Area: ${customer.area || "-"}\n`;
-  msg += `⏰ Delivery Time: ${customer.time || "-"}\n`;
+  msg += `📅 Day: ${customer.day || "Today"}\n`;
+  msg += `⏰ Time: ${customer.time || "-"}\n`;
+  msg += `💳 Payment: ${customer.payment || "-"}\n`;
   msg += `📝 Note: ${customer.note || "-"}\n\n`;
 
   msg += `🛍️ *Items:*\n`;
-
   cart.forEach((item, idx) => {
-    msg += `${idx + 1}. ${item.name}  x${item.qty}  = ₹${item.qty * item.salePrice}\n`;
+    msg += `${idx + 1}. ${item.name} x${item.qty} = ₹${item.qty * item.salePrice}\n`;
   });
 
   msg += `\n------------------------\n`;
-  msg += `🧾 Subtotal: ₹${cartSubTotal()}\n`;
-  msg += `🚚 Delivery Charge: ₹${getDeliveryCharge()}\n`;
-  msg += `💰 *Grand Total:* ₹${cartGrandTotal()}\n`;
-  msg += `📦 Minimum Order: ₹${MIN_ORDER}\n`;
+  msg += `Subtotal: ₹${cartSubTotal()}\n`;
+  msg += `Delivery: ₹${getDeliveryCharge()}\n`;
+  msg += `*Grand Total: ₹${cartGrandTotal()}*\n`;
   msg += `------------------------\n\n`;
 
-  msg += `✅ Please confirm my order.\n`;
+  if ((customer.payment || "") === "UPI") {
+    msg += `💳 UPI ID: ${UPI_ID}\n`;
+    msg += `📸 Screenshot भेजें.\n\n`;
+  }
 
+  msg += `✅ Please confirm my order.\n`;
   return msg;
 }
-
-// =======================
-// LOAD SHEET
-// =======================
-async function loadProducts() {
-  try {
-    const res = await fetch(SHEET_CSV_URL);
-    const text = await res.text();
-
-    const raw = parseCSV(text);
-
-    allProducts = raw.map(r => ({
-      ID: r.ID || r.Id || r.id,
-      Name: r.Name || r.name,
-      Category: r.Category || r.category,
-      MRP: r.MRP || r.mrp,
-      Discount: r.Discount || r.discount,
-      "Sale Price": r["Sale Price"] || r["SalePrice"] || r.saleprice || r.sale,
-      Stock: r.Stock || r.stock,
-      Image: r.Image || r.image || "assets/logo.png"
-    }))
-    .filter(p => p.ID && p.Name);
-
-    renderCategories();
-    renderProducts();
-    updateCartUI();
-  } catch (e) {
-    offersGrid.innerHTML = `<div style="color:red; font-weight:800;">CSV Link Wrong / Sheet Not Public</div>`;
-    productsGrid.innerHTML = `<div style="color:red; font-weight:800;">CSV Link Wrong / Sheet Not Public</div>`;
-    console.log(e);
-  }
-}
-
-// =======================
-// GLOBAL
-// =======================
-window.__addToCart = function(id){
-  const p = allProducts.find(x => String(x.ID) === String(id));
-  if (!p) return;
-
-  const item = {
-    id: String(p.ID),
-    name: p.Name,
-    salePrice: toNumber(p["Sale Price"]),
-  };
-  addToCart(item);
-};
-
-window.__changeQty = changeQty;
-
-window.__selectCategory = function(cat){
-  selectedCategory = cat;
-  renderCategories();
-  renderProducts();
-};
 
 // =======================
 // EVENTS
@@ -419,6 +398,10 @@ whatsappBtn.addEventListener("click", () => {
     return alert(`Minimum order ₹${MIN_ORDER} required!`);
   }
 
+  if (!customer.name || !customer.mobile || !customer.address || !customer.area || !customer.time || !customer.payment) {
+    return alert("Please fill customer details, area, time & payment method!");
+  }
+
   const msg = buildWhatsAppMessage();
   const url = `https://wa.me/91${SHOP_WHATSAPP}?text=${encodeURIComponent(msg)}`;
   window.open(url, "_blank");
@@ -426,26 +409,85 @@ whatsappBtn.addEventListener("click", () => {
 
 confirmBtn.addEventListener("click", () => {
   if (cart.length === 0) return alert("Cart is empty!");
-
   alert("✅ Your order is confirmed! Thank you 😊");
-
-  const confirmMsg = `✅ *Your order is confirmed!* \n\nThank you for shopping from *Sultan Mart Bharatganj* 😊`;
-  const url = `https://wa.me/91${SHOP_WHATSAPP}?text=${encodeURIComponent(confirmMsg)}`;
-  window.open(url, "_blank");
-
   clearCart();
   closeCart();
 });
 
-clearCartBtn.addEventListener("click", () => {
-  clearCart();
+clearCartBtn.addEventListener("click", clearCart);
+
+// Copy UPI
+upiText.textContent = UPI_ID;
+copyUpiBtn.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(UPI_ID);
+    copyUpiBtn.textContent = "Copied!";
+    setTimeout(() => copyUpiBtn.textContent = "Copy", 1200);
+  } catch {
+    alert("Copy not supported on this device");
+  }
 });
 
-// Call
-callBtn.href = `tel:${SHOP_PHONE}`;
+// Customer form save
+function bindCustomerForm() {
+  function update() {
+    customer.name = custName.value.trim();
+    customer.mobile = custMobile.value.trim();
+    customer.address = custAddress.value.trim();
+    customer.area = custArea.value;
+    customer.day = custDay.value;
+    customer.time = custTime.value;
+    customer.payment = paymentMethod.value;
+    customer.note = custNote.value.trim();
+
+    saveCustomer();
+    renderCart();
+  }
+
+  [custName, custMobile, custAddress, custArea, custDay, custTime, paymentMethod, custNote].forEach(el => {
+    el.addEventListener("input", update);
+    el.addEventListener("change", update);
+  });
+
+  // Load saved
+  custName.value = customer.name || "";
+  custMobile.value = customer.mobile || "";
+  custAddress.value = customer.address || "";
+  custArea.value = customer.area || "";
+  custDay.value = customer.day || "Today";
+  custTime.value = customer.time || "";
+  paymentMethod.value = customer.payment || "";
+  custNote.value = customer.note || "";
+}
+
+// =======================
+// GLOBAL
+// =======================
+window.__addToCart = function(id){
+  const p = allProducts.find(x => String(x.id) === String(id));
+  if (!p) return;
+
+  addToCart({
+    id: String(p.id),
+    name: p.name,
+    salePrice: toNumber(p.sale)
+  });
+
+  renderCart();
+};
+
+window.__changeQty = changeQty;
+
+window.__selectCategory = function(cat){
+  selectedCategory = cat;
+  renderCategories();
+  renderProducts();
+};
 
 // =======================
 // INIT
 // =======================
+bindCustomerForm();
 loadProducts();
 updateCartUI();
+renderCart();
