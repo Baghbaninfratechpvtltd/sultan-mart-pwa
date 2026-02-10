@@ -1,525 +1,445 @@
-// =======================
-// SETTINGS
-// =======================
-const SHEET_CSV_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0DkCrsf4_AD96Kv9yaYNbMUUHpQtz59zkXH9f1T9mPI2pXB-OcXTR0pdO-9sgyarYD4pEp8nolt5R/pub?output=csv";
+/* =========================
+   Sultan Mart Bharatganj
+   FULL APP.JS (COPY PASTE)
+========================= */
 
-const SHOP_PHONE = "9559868648";
-const SHOP_WHATSAPP = "9559868648";
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0DkCrsf4_AD96Kv9yaYNbMUUHpQtz59zkXH9f1T9mPI2pXB-OcXTR0pdO-9sgyarYD4pEp8nolt5R/pub?output=csv";
+
+const WHATSAPP_NUMBER = "9559868648";
+const CALL_NUMBER = "9559868648";
 const UPI_ID = "9559868648@ptyes";
 
-const MIN_ORDER = 199;
-const OTHER_AREA_CHARGE = 20;
-
-// =======================
-// DOM
-// =======================
-const offersGrid = document.getElementById("offersGrid");
-const productsGrid = document.getElementById("productsGrid");
-const categoryChips = document.getElementById("categoryChips");
-const searchInput = document.getElementById("searchInput");
-
-const openCartBtn = document.getElementById("openCartBtn");
-const closeCartBtn = document.getElementById("closeCartBtn");
-const cartBackdrop = document.getElementById("cartBackdrop");
-const cartModal = document.getElementById("cartModal");
-
-const cartItemsEl = document.getElementById("cartItems");
-const cartCountEl = document.getElementById("cartCount");
-
-const subTotalEl = document.getElementById("subTotal");
-const deliveryChargeEl = document.getElementById("deliveryCharge");
-const grandTotalEl = document.getElementById("grandTotal");
-const orderIdEl = document.getElementById("orderId");
-
-const whatsappBtn = document.getElementById("whatsappBtn");
-const clearCartBtn = document.getElementById("clearCartBtn");
-
-const copyUpiBtn = document.getElementById("copyUpiBtn");
-const upiText = document.getElementById("upiText");
-
-// UPI Pay box
-const upiPayBox = document.getElementById("upiPayBox");
-const upiPayBtn = document.getElementById("upiPayBtn");
-const copyUpiLinkBtn = document.getElementById("copyUpiLinkBtn");
-
-// Form
-const custName = document.getElementById("custName");
-const custMobile = document.getElementById("custMobile");
-const custAddress = document.getElementById("custAddress");
-const custArea = document.getElementById("custArea");
-const custDay = document.getElementById("custDay");
-const custTime = document.getElementById("custTime");
-const paymentMethod = document.getElementById("paymentMethod");
-const custNote = document.getElementById("custNote");
-
-// =======================
-// STATE
-// =======================
-let allProducts = [];
-let selectedCategory = "All";
-let searchQuery = "";
-
+let products = [];
 let cart = JSON.parse(localStorage.getItem("cart_sultanmart") || "[]");
-let customer = JSON.parse(localStorage.getItem("customer_sultanmart") || "{}");
-let orderId = localStorage.getItem("order_id_sultanmart") || "";
 
-// =======================
-// HELPERS
-// =======================
-function toNumber(v) {
-  const n = Number(String(v || "").replace(/[^\d.]/g, ""));
-  return isNaN(n) ? 0 : n;
+document.addEventListener("DOMContentLoaded", () => {
+  loadProducts();
+  updateCartUI();
+
+  document.getElementById("searchInput").addEventListener("input", () => {
+    renderAll();
+  });
+
+  document.getElementById("paymentMethod").addEventListener("change", () => {
+    updateUPILink();
+  });
+
+  document.getElementById("deliveryArea").addEventListener("change", () => {
+    updateCartUI();
+  });
+});
+
+/* ===== CSV Fetch ===== */
+async function loadProducts() {
+  try {
+    const res = await fetch(CSV_URL + "&t=" + Date.now());
+    const text = await res.text();
+
+    products = parseCSV(text);
+
+    if (!products.length) {
+      alert("CSV Link Wrong / Sheet Not Public ❌");
+      return;
+    }
+
+    buildCategories();
+    renderAll();
+
+  } catch (err) {
+    alert("CSV Link Wrong / Sheet Not Public ❌");
+    console.log(err);
+  }
 }
 
-function getDiscountPercent(mrp, sale) {
-  if (!mrp || !sale || mrp <= 0) return 0;
-  const p = Math.round(((mrp - sale) / mrp) * 100);
-  return p > 0 ? p : 0;
+/* ===== CSV Parser (Simple) ===== */
+function parseCSV(csvText) {
+  const lines = csvText.trim().split("\n").map(l => l.trim());
+  if (lines.length < 2) return [];
+
+  const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
+
+  // Required headers
+  // ID, Name, Category, MRP, Discount, Sale Price, Stock, Image
+  const req = ["name", "category", "mrp", "discount", "sale price", "stock", "image"];
+  for (let r of req) {
+    if (!headers.includes(r)) {
+      console.log("Missing header:", r);
+      return [];
+    }
+  }
+
+  let out = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const row = splitCSVRow(lines[i]);
+    if (row.length < headers.length) continue;
+
+    let obj = {};
+    headers.forEach((h, idx) => {
+      obj[h] = (row[idx] || "").trim();
+    });
+
+    // Normalize
+    const name = obj["name"];
+    const category = obj["category"] || "Other";
+    const mrp = Number(obj["mrp"] || 0);
+    const discount = Number(obj["discount"] || 0);
+    const sale = Number(obj["sale price"] || mrp);
+    const stock = Number(obj["stock"] || 0);
+    const image = obj["image"] || "";
+
+    if (!name) continue;
+
+    out.push({
+      id: obj["id"] || String(i),
+      name,
+      category,
+      mrp,
+      discount,
+      sale,
+      stock,
+      image
+    });
+  }
+
+  return out;
+}
+
+/* CSV row safe split (handles commas in quotes) */
+function splitCSVRow(row) {
+  let result = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < row.length; i++) {
+    const char = row[i];
+
+    if (char === '"' ) {
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      result.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  result.push(current);
+  return result;
+}
+
+/* ===== Categories ===== */
+function buildCategories() {
+  const row = document.getElementById("categoryRow");
+  row.innerHTML = "";
+
+  let cats = ["All", ...new Set(products.map(p => p.category))];
+
+  cats.forEach((c, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "cat-btn" + (idx === 0 ? " active" : "");
+    btn.innerText = c;
+    btn.onclick = () => {
+      document.querySelectorAll(".cat-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      renderAll();
+    };
+    row.appendChild(btn);
+  });
+}
+
+/* ===== Render ===== */
+function renderAll() {
+  const activeCat = document.querySelector(".cat-btn.active")?.innerText || "All";
+  const q = document.getElementById("searchInput").value.trim().toLowerCase();
+
+  let filtered = products.filter(p => {
+    const catOK = activeCat === "All" ? true : p.category === activeCat;
+    const searchOK = p.name.toLowerCase().includes(q);
+    return catOK && searchOK;
+  });
+
+  // Offers: discount > 0
+  const offers = filtered.filter(p => p.discount > 0).slice(0, 12);
+
+  renderGrid("offerGrid", offers);
+  renderGrid("productGrid", filtered);
+}
+
+/* Render Grid */
+function renderGrid(id, list) {
+  const grid = document.getElementById(id);
+  grid.innerHTML = "";
+
+  if (!list.length) {
+    grid.innerHTML = `<p style="padding:10px;color:#6b7280;font-weight:800;">No products found</p>`;
+    return;
+  }
+
+  list.forEach(p => {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const img = p.image ? p.image : "assets/no-image.png";
+
+    card.innerHTML = `
+      <div class="img-wrap">
+        <img src="${img}" onerror="this.src='assets/no-image.png'" alt="${p.name}">
+      </div>
+
+      <div class="card-body">
+        <div class="p-name">${p.name}</div>
+        <div class="p-cat">${p.category}</div>
+
+        <div class="price-row">
+          <div>
+            <div class="price">₹${p.sale}</div>
+            ${p.mrp > p.sale ? `<div class="mrp">₹${p.mrp}</div>` : ""}
+          </div>
+
+          ${p.discount > 0 ? `<div class="off-badge">${p.discount}% OFF</div>` : ""}
+        </div>
+
+        <div class="stock ${p.stock <= 0 ? "out" : ""}">
+          ${p.stock <= 0 ? "Out of Stock" : "Stock: " + p.stock}
+        </div>
+
+        <button class="add-btn" ${p.stock <= 0 ? "disabled" : ""} onclick="addToCart('${p.id}')">
+          ➕ Add to Cart
+        </button>
+      </div>
+    `;
+
+    grid.appendChild(card);
+  });
+}
+
+/* ===== Cart ===== */
+function addToCart(id) {
+  const p = products.find(x => x.id == id);
+  if (!p) return;
+
+  const found = cart.find(x => x.id == id);
+
+  if (found) found.qty += 1;
+  else cart.push({ id: p.id, qty: 1 });
+
+  saveCart();
+  updateCartUI();
 }
 
 function saveCart() {
   localStorage.setItem("cart_sultanmart", JSON.stringify(cart));
 }
-function saveCustomer() {
-  localStorage.setItem("customer_sultanmart", JSON.stringify(customer));
-}
-function saveOrderId() {
-  localStorage.setItem("order_id_sultanmart", orderId);
-}
-
-function cartCount() {
-  return cart.reduce((sum, item) => sum + item.qty, 0);
-}
-function cartSubTotal() {
-  return cart.reduce((sum, item) => sum + item.qty * item.salePrice, 0);
-}
-
-function getDeliveryCharge() {
-  if (!customer.area) return 0;
-  if (customer.area === "Bharatganj") return 0;
-  if (customer.area === "Other") return OTHER_AREA_CHARGE;
-  return 0;
-}
-
-function cartGrandTotal() {
-  return cartSubTotal() + getDeliveryCharge();
-}
-
-function generateOrderId() {
-  const now = new Date();
-  const dd = String(now.getDate()).padStart(2, "0");
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const yy = String(now.getFullYear()).slice(-2);
-  const rnd = Math.floor(100 + Math.random() * 900);
-  return `${dd}${mm}${yy}-${rnd}`;
-}
-
-function updateCartUI() {
-  cartCountEl.textContent = cartCount();
-}
 
 function openCart() {
-  cartBackdrop.style.display = "block";
-  cartModal.style.display = "block";
+  document.getElementById("cartModal").classList.add("open");
   renderCart();
+  updateCartUI();
 }
+
 function closeCart() {
-  cartBackdrop.style.display = "none";
-  cartModal.style.display = "none";
-}
-
-// =======================
-// CART ACTIONS
-// =======================
-function addToCart(product) {
-  const found = cart.find(i => i.id === product.id);
-  if (found) found.qty += 1;
-  else cart.push({ ...product, qty: 1 });
-
-  if (!orderId) {
-    orderId = generateOrderId();
-    saveOrderId();
-  }
-
-  saveCart();
-  updateCartUI();
-}
-
-function changeQty(id, delta) {
-  const item = cart.find(i => i.id === id);
-  if (!item) return;
-
-  item.qty += delta;
-  if (item.qty <= 0) cart = cart.filter(i => i.id !== id);
-
-  if (cart.length === 0) {
-    orderId = "";
-    saveOrderId();
-  }
-
-  saveCart();
-  updateCartUI();
-  renderCart();
+  document.getElementById("cartModal").classList.remove("open");
 }
 
 function clearCart() {
   cart = [];
-  orderId = "";
   saveCart();
-  saveOrderId();
+  renderCart();
   updateCartUI();
-  renderCart();
 }
 
-// =======================
-// UPI PAY LINK (AUTO)
-// =======================
-function buildUpiLink() {
-  const amount = cartGrandTotal();
-  if (!amount || amount <= 0) return "";
-
-  // UPI Deep link
-  const pa = encodeURIComponent(UPI_ID);
-  const pn = encodeURIComponent("Sultan Mart Bharatganj");
-  const tn = encodeURIComponent(`Order #${orderId || "SultanMart"}`);
-  const am = encodeURIComponent(String(amount));
-  const cu = "INR";
-
-  return `upi://pay?pa=${pa}&pn=${pn}&tn=${tn}&am=${am}&cu=${cu}`;
-}
-
-function updateUpiBox() {
-  if ((customer.payment || "") === "UPI") {
-    const link = buildUpiLink();
-    upiPayBtn.href = link;
-    upiPayBox.style.display = "block";
-  } else {
-    upiPayBox.style.display = "none";
-  }
-}
-
-// =======================
-// RENDER CART
-// =======================
+/* Render Cart Items */
 function renderCart() {
-  orderIdEl.textContent = orderId || "----";
+  const box = document.getElementById("cartItems");
+  box.innerHTML = "";
 
-  if (cart.length === 0) {
-    cartItemsEl.innerHTML = `<div style="opacity:.7;padding:10px 0;">Cart is empty</div>`;
-  } else {
-    cartItemsEl.innerHTML = cart.map(item => `
-      <div class="cart-item">
-        <div>
-          <div class="cart-item-name">${item.name}</div>
-          <div style="opacity:.7;font-size:12px;">₹${item.salePrice} each</div>
+  if (!cart.length) {
+    box.innerHTML = `<p style="padding:10px;color:#6b7280;font-weight:900;">Cart is empty</p>`;
+    updateBill();
+    return;
+  }
+
+  cart.forEach(ci => {
+    const p = products.find(x => x.id == ci.id);
+    if (!p) return;
+
+    const img = p.image ? p.image : "assets/no-image.png";
+
+    const item = document.createElement("div");
+    item.className = "cart-item";
+
+    item.innerHTML = `
+      <img src="${img}" onerror="this.src='assets/no-image.png'" />
+
+      <div class="cart-info">
+        <h4>${p.name}</h4>
+        <p>₹${p.sale} each</p>
+
+        <div class="cart-controls">
+          <div class="qty">
+            <button onclick="qtyMinus('${p.id}')">-</button>
+            <span>${ci.qty}</span>
+            <button onclick="qtyPlus('${p.id}')">+</button>
+          </div>
+
+          <button class="remove-btn" onclick="removeItem('${p.id}')">Remove</button>
         </div>
-
-        <div class="qty-controls">
-          <button class="qty-btn" onclick="window.__changeQty('${item.id}',-1)">-</button>
-          <div class="qty">${item.qty}</div>
-          <button class="qty-btn" onclick="window.__changeQty('${item.id}',1)">+</button>
-        </div>
-
-        <div class="cart-item-price">₹${item.qty * item.salePrice}</div>
       </div>
-    `).join("");
-  }
+    `;
 
-  subTotalEl.textContent = cartSubTotal();
-  deliveryChargeEl.textContent = getDeliveryCharge();
-  grandTotalEl.textContent = cartGrandTotal();
-
-  updateUpiBox();
-}
-
-// =======================
-// PRODUCT CARD
-// =======================
-function productCard(p) {
-  const mrp = toNumber(p.MRP);
-  const sale = toNumber(p.sale);
-  const stock = toNumber(p.stock);
-  const disc = getDiscountPercent(mrp, sale);
-
-  const outOfStock = stock <= 0;
-
-  return `
-    <div class="product-card">
-      <img class="product-img" src="${p.image}" alt="${p.name}" onerror="this.src='assets/logo.png'"/>
-
-      <div>
-        <div class="product-name">${p.name}</div>
-        <div class="product-cat">${p.category}</div>
-      </div>
-
-      <div class="price-row">
-        <div class="sale-price">₹${sale}</div>
-        ${mrp > 0 && mrp !== sale ? `<div class="mrp">₹${mrp}</div>` : ""}
-        ${disc > 0 ? `<div class="badge-off">${disc}% OFF</div>` : ""}
-      </div>
-
-      <div class="stock">${outOfStock ? "❌ Out of Stock" : `Stock: ${stock}`}</div>
-
-      <button class="btn-add" ${outOfStock ? "disabled" : ""} onclick="window.__addToCart('${p.id}')">
-        ${outOfStock ? "Out of Stock" : "Add to Cart"}
-      </button>
-    </div>
-  `;
-}
-
-// =======================
-// FILTER + SORT
-// =======================
-function filteredProducts() {
-  let list = allProducts.filter(p => {
-    const matchesCat = selectedCategory === "All" || p.category === selectedCategory;
-    const q = searchQuery;
-    const matchesSearch =
-      p.name.toLowerCase().includes(q) ||
-      p.category.toLowerCase().includes(q);
-    return matchesCat && matchesSearch;
+    box.appendChild(item);
   });
 
-  list.sort((a, b) => {
-    const aMrp = toNumber(a.MRP);
-    const bMrp = toNumber(b.MRP);
-    const aSale = toNumber(a.sale);
-    const bSale = toNumber(b.sale);
-
-    const aDisc = getDiscountPercent(aMrp, aSale);
-    const bDisc = getDiscountPercent(bMrp, bSale);
-
-    const aStock = toNumber(a.stock);
-    const bStock = toNumber(b.stock);
-
-    if (bDisc !== aDisc) return bDisc - aDisc;
-
-    const aIn = aStock > 0 ? 1 : 0;
-    const bIn = bStock > 0 ? 1 : 0;
-    if (bIn !== aIn) return bIn - aIn;
-
-    return bStock - aStock;
-  });
-
-  return list;
+  updateBill();
 }
 
-function renderCategories() {
-  const cats = ["All", ...new Set(allProducts.map(p => p.category).filter(Boolean))];
-  categoryChips.innerHTML = cats.map(cat => `
-    <button class="chip ${cat === selectedCategory ? "active" : ""}" onclick="window.__selectCategory('${cat}')">
-      ${cat}
-    </button>
-  `).join("");
-}
-
-function renderProducts() {
-  const list = filteredProducts();
-  const offers = list.filter(p => getDiscountPercent(toNumber(p.MRP), toNumber(p.sale)) > 0);
-
-  offersGrid.innerHTML = offers.map(productCard).join("") || `<div style="opacity:.7">No offers available</div>`;
-  productsGrid.innerHTML = list.map(productCard).join("") || `<div style="opacity:.7">No products found</div>`;
-}
-
-// =======================
-// CSV LOAD
-// =======================
-async function loadProducts() {
-  try {
-    const res = await fetch(SHEET_CSV_URL);
-    const csv = await res.text();
-
-    const lines = csv.trim().split("\n");
-    const headers = lines[0].split(",").map(h => h.trim());
-
-    const idx = (name) => headers.indexOf(name);
-
-    const data = [];
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(",");
-
-      const obj = {
-        id: (cols[idx("ID")] || "").trim(),
-        name: (cols[idx("Name")] || "").trim(),
-        category: (cols[idx("Category")] || "").trim(),
-        MRP: (cols[idx("MRP")] || "").trim(),
-        sale: (cols[idx("Sale Price")] || "").trim(),
-        stock: (cols[idx("Stock")] || "").trim(),
-        image: (cols[idx("Image")] || "").trim() || "assets/logo.png",
-      };
-
-      if (obj.id && obj.name) data.push(obj);
-    }
-
-    allProducts = data;
-
-    renderCategories();
-    renderProducts();
-    updateCartUI();
-    renderCart();
-  } catch (e) {
-    offersGrid.innerHTML = `<div style="color:red;font-weight:900;">CSV Link Wrong / Sheet Not Public</div>`;
-    productsGrid.innerHTML = `<div style="color:red;font-weight:900;">CSV Link Wrong / Sheet Not Public</div>`;
-    console.log(e);
-  }
-}
-
-// =======================
-// WHATSAPP MESSAGE
-// =======================
-function buildWhatsAppMessage() {
-  let msg = `🛒 *Sultan Mart Bharatganj*\n`;
-  msg += `📌 *New Order*\n\n`;
-
-  msg += `🧾 Order ID: *#${orderId || generateOrderId()}*\n\n`;
-
-  msg += `👤 Name: ${customer.name || "-"}\n`;
-  msg += `📞 Mobile: ${customer.mobile || "-"}\n`;
-  msg += `🏠 Address: ${customer.address || "-"}\n`;
-  msg += `📍 Area: ${customer.area || "-"}\n`;
-  msg += `📅 Day: ${customer.day || "Today"}\n`;
-  msg += `⏰ Time: ${customer.time || "-"}\n`;
-  msg += `💳 Payment: ${customer.payment || "-"}\n`;
-  msg += `📝 Note: ${customer.note || "-"}\n\n`;
-
-  msg += `🛍️ *Items:*\n`;
-  cart.forEach((item, idx) => {
-    msg += `${idx + 1}. ${item.name} x${item.qty} = ₹${item.qty * item.salePrice}\n`;
-  });
-
-  msg += `\n------------------------\n`;
-  msg += `Subtotal: ₹${cartSubTotal()}\n`;
-  msg += `Delivery: ₹${getDeliveryCharge()}\n`;
-  msg += `*Grand Total: ₹${cartGrandTotal()}*\n`;
-  msg += `------------------------\n\n`;
-
-  if ((customer.payment || "") === "UPI") {
-    msg += `💳 UPI ID: ${UPI_ID}\n`;
-    msg += `📌 Pay Link: ${buildUpiLink()}\n`;
-    msg += `📸 Screenshot भेजें.\n\n`;
-  }
-
-  msg += `✅ Please confirm my order.\n`;
-  return msg;
-}
-
-// =======================
-// EVENTS
-// =======================
-openCartBtn.addEventListener("click", openCart);
-closeCartBtn.addEventListener("click", closeCart);
-cartBackdrop.addEventListener("click", closeCart);
-
-searchInput.addEventListener("input", (e) => {
-  searchQuery = e.target.value.trim().toLowerCase();
-  renderProducts();
-});
-
-whatsappBtn.addEventListener("click", () => {
-  if (cart.length === 0) return alert("Cart is empty!");
-
-  if (cartGrandTotal() < MIN_ORDER) {
-    return alert(`Minimum order ₹${MIN_ORDER} required!`);
-  }
-
-  if (!customer.name || !customer.mobile || !customer.address || !customer.area || !customer.time || !customer.payment) {
-    return alert("Please fill customer details, area, time & payment method!");
-  }
-
-  const msg = buildWhatsAppMessage();
-  const url = `https://wa.me/91${SHOP_WHATSAPP}?text=${encodeURIComponent(msg)}`;
-  window.open(url, "_blank");
-});
-
-clearCartBtn.addEventListener("click", clearCart);
-
-// Copy UPI
-upiText.textContent = UPI_ID;
-copyUpiBtn.addEventListener("click", async () => {
-  try {
-    await navigator.clipboard.writeText(UPI_ID);
-    copyUpiBtn.textContent = "Copied!";
-    setTimeout(() => copyUpiBtn.textContent = "Copy", 1200);
-  } catch {
-    alert("Copy not supported on this device");
-  }
-});
-
-// Copy UPI Link
-copyUpiLinkBtn.addEventListener("click", async () => {
-  try {
-    const link = buildUpiLink();
-    await navigator.clipboard.writeText(link);
-    copyUpiLinkBtn.textContent = "Copied!";
-    setTimeout(() => copyUpiLinkBtn.textContent = "Copy Link", 1200);
-  } catch {
-    alert("Copy not supported on this device");
-  }
-});
-
-// Customer form save
-function bindCustomerForm() {
-  function update() {
-    customer.name = custName.value.trim();
-    customer.mobile = custMobile.value.trim();
-    customer.address = custAddress.value.trim();
-    customer.area = custArea.value;
-    customer.day = custDay.value;
-    customer.time = custTime.value;
-    customer.payment = paymentMethod.value;
-    customer.note = custNote.value.trim();
-
-    saveCustomer();
-    renderCart();
-  }
-
-  [custName, custMobile, custAddress, custArea, custDay, custTime, paymentMethod, custNote].forEach(el => {
-    el.addEventListener("input", update);
-    el.addEventListener("change", update);
-  });
-
-  // Load saved
-  custName.value = customer.name || "";
-  custMobile.value = customer.mobile || "";
-  custAddress.value = customer.address || "";
-  custArea.value = customer.area || "";
-  custDay.value = customer.day || "Today";
-  custTime.value = customer.time || "";
-  paymentMethod.value = customer.payment || "";
-  custNote.value = customer.note || "";
-
-  updateUpiBox();
-}
-
-// =======================
-// GLOBAL
-// =======================
-window.__addToCart = function(id){
-  const p = allProducts.find(x => String(x.id) === String(id));
-  if (!p) return;
-
-  addToCart({
-    id: String(p.id),
-    name: p.name,
-    salePrice: toNumber(p.sale)
-  });
-
+/* Qty */
+function qtyPlus(id) {
+  const it = cart.find(x => x.id == id);
+  if (!it) return;
+  it.qty += 1;
+  saveCart();
   renderCart();
-};
+  updateCartUI();
+}
 
-window.__changeQty = changeQty;
+function qtyMinus(id) {
+  const it = cart.find(x => x.id == id);
+  if (!it) return;
+  it.qty -= 1;
+  if (it.qty <= 0) cart = cart.filter(x => x.id != id);
+  saveCart();
+  renderCart();
+  updateCartUI();
+}
 
-window.__selectCategory = function(cat){
-  selectedCategory = cat;
-  renderCategories();
-  renderProducts();
-};
+function removeItem(id) {
+  cart = cart.filter(x => x.id != id);
+  saveCart();
+  renderCart();
+  updateCartUI();
+}
 
-// =======================
-// INIT
-// =======================
-bindCustomerForm();
-loadProducts();
-updateCartUI();
-renderCart();
+/* Bill */
+function updateBill() {
+  let total = 0;
+  let mrpTotal = 0;
+
+  cart.forEach(ci => {
+    const p = products.find(x => x.id == ci.id);
+    if (!p) return;
+
+    total += p.sale * ci.qty;
+    mrpTotal += p.mrp * ci.qty;
+  });
+
+  const saved = mrpTotal - total;
+
+  // Delivery
+  const area = document.getElementById("deliveryArea").value;
+  let delivery = 0;
+
+  if (area === "paid") {
+    if (total < 499) delivery = 30;
+    else delivery = 0;
+  } else {
+    delivery = 0;
+  }
+
+  document.getElementById("billTotal").innerText = "₹" + total;
+  document.getElementById("deliveryCharge").innerText = "₹" + delivery;
+  document.getElementById("discountSaved").innerText = "₹" + (saved > 0 ? saved : 0);
+  document.getElementById("grandTotal").innerText = "₹" + (total + delivery);
+
+  updateUPILink();
+}
+
+/* Top cart count */
+function updateCartUI() {
+  const count = cart.reduce((a, b) => a + b.qty, 0);
+  document.getElementById("cartCount").innerText = count;
+  document.getElementById("fabCount").innerText = count;
+}
+
+/* ===== UPI ===== */
+function updateUPILink() {
+  const method = document.getElementById("paymentMethod").value;
+  const upiBox = document.getElementById("upiBox");
+  const upiLink = document.getElementById("upiLink");
+
+  if (method !== "upi") {
+    upiBox.style.display = "none";
+    return;
+  }
+
+  upiBox.style.display = "block";
+
+  // Total
+  const totalText = document.getElementById("grandTotal").innerText.replace("₹", "");
+  const amount = Number(totalText || 0);
+
+  const name = "Sultan Mart Bharatganj";
+  const note = "Grocery Order Payment";
+
+  const link = `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=${encodeURIComponent(note)}`;
+
+  upiLink.href = link;
+}
+
+/* ===== Call ===== */
+function callNow() {
+  window.location.href = `tel:${CALL_NUMBER}`;
+}
+
+/* ===== WhatsApp Order ===== */
+function sendWhatsApp() {
+  if (!cart.length) {
+    alert("Cart is empty ❌");
+    return;
+  }
+
+  const name = document.getElementById("custName").value.trim();
+  const phone = document.getElementById("custPhone").value.trim();
+  const address = document.getElementById("custAddress").value.trim();
+  const area = document.getElementById("deliveryArea").value;
+  const time = document.getElementById("deliveryTime").value;
+  const payment = document.getElementById("paymentMethod").value;
+
+  if (!name || !phone || !address) {
+    alert("Name, Phone, Address required ❌");
+    return;
+  }
+
+  let msg = `🛒 *New Order - Sultan Mart Bharatganj*%0A%0A`;
+  msg += `👤 Name: ${name}%0A`;
+  msg += `📞 Phone: ${phone}%0A`;
+  msg += `🏠 Address: ${address}%0A`;
+  msg += `📍 Area: ${area === "free" ? "Bharatganj (Free Delivery)" : "Outside (Paid Delivery)"}%0A`;
+  msg += `⏰ Delivery Time: ${time}%0A`;
+  msg += `💳 Payment: ${payment || "Not Selected"}%0A%0A`;
+
+  msg += `🧾 *Items:*%0A`;
+
+  cart.forEach(ci => {
+    const p = products.find(x => x.id == ci.id);
+    if (!p) return;
+    msg += `• ${p.name} × ${ci.qty} = ₹${p.sale * ci.qty}%0A`;
+  });
+
+  const grand = document.getElementById("grandTotal").innerText.replace("₹", "");
+  const del = document.getElementById("deliveryCharge").innerText.replace("₹", "");
+
+  msg += `%0A🚚 Delivery Charge: ₹${del}%0A`;
+  msg += `💰 *Grand Total: ₹${grand}*%0A%0A`;
+  msg += `✅ Please Confirm Order`;
+
+  const wa = `https://wa.me/91${WHATSAPP_NUMBER}?text=${msg}`;
+  window.open(wa, "_blank");
+
+  // Order confirmed by customer sending message
+  // Clear cart automatically
+  clearCart();
+}
