@@ -1,5 +1,5 @@
 /* ==============================
-   Sultan Mart - Full style.css
+   Sultan Mart - Stylish UI
    ============================== */
 
 *{ box-sizing:border-box; margin:0; padding:0; font-family:system-ui, Arial; }
@@ -216,7 +216,7 @@ body{
 
 .imgbox{
   width:100%;
-  height:150px;
+  height:190px;
   background:#f1f3f8;
   overflow:hidden;
 }
@@ -224,7 +224,8 @@ body{
 .imgbox img{
   width:100%;
   height:100%;
-  object-fit:cover;
+  object-fit: contain; /* FULL IMAGE */
+  background: #f1f3f8;
 }
 
 .content{
@@ -280,9 +281,21 @@ body{
   background: rgba(0,0,0,0.05);
 }
 
+/* DISCOUNT YELLOW */
 .badge.off{
-  background: rgba(42,109,255,0.14);
-  color:#2a6dff;
+  background: #fff4b3;
+  color: #d68b00;
+  font-weight: 1000;
+}
+
+.badge.stock{
+  background: rgba(0,200,0,0.10);
+  color:#0a7a0a;
+}
+
+.badge.out{
+  background: rgba(255,0,0,0.10);
+  color:#b00000;
 }
 
 .btn{
@@ -326,7 +339,7 @@ body{
 
 .modal{
   width:100%;
-  max-width:620px;
+  max-width:650px;
   background:#fff;
   border-radius:22px;
   overflow:hidden;
@@ -357,7 +370,7 @@ body{
 }
 
 .cartlist{
-  max-height:220px;
+  max-height:240px;
   overflow:auto;
   padding:12px 16px;
   display:flex;
@@ -378,7 +391,8 @@ body{
   width:56px;
   height:56px;
   border-radius:14px;
-  object-fit:cover;
+  object-fit:contain;
+  background:#fff;
 }
 
 .cart-row .info{
