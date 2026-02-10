@@ -4,7 +4,7 @@
 
 // CSV LINK (ALREADY SET)
 const SHEET_CSV_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0DkCrsf4_AD96Kv9yaYNbMUUHpQtz59zkXH9f1T9mPI2pXB-OcXTR0pdO-9sgyarYD4pEp8nolt5R/pub?output=csv";
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0DkCrsf4_AD96Kv9yaYNbMUUHpQtz59zkXH9f1T9mPI2pXB-OcXTR0pdO-9sgyarYD4pEp8nolt5R/pubhtml";
 
 const SHOP_NAME = "Sultan Mart Bharatganj";
 const WHATSAPP_NUMBER = "9559868648";
@@ -377,3 +377,4 @@ async function loadProducts() {
 }
 
 loadProducts();
+
