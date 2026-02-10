@@ -33,11 +33,15 @@ const grandTotalEl = document.getElementById("grandTotal");
 const orderIdEl = document.getElementById("orderId");
 
 const whatsappBtn = document.getElementById("whatsappBtn");
-const confirmBtn = document.getElementById("confirmBtn");
 const clearCartBtn = document.getElementById("clearCartBtn");
 
 const copyUpiBtn = document.getElementById("copyUpiBtn");
 const upiText = document.getElementById("upiText");
+
+// UPI Pay box
+const upiPayBox = document.getElementById("upiPayBox");
+const upiPayBtn = document.getElementById("upiPayBtn");
+const copyUpiLinkBtn = document.getElementById("copyUpiLinkBtn");
 
 // Form
 const custName = document.getElementById("custName");
@@ -169,6 +173,33 @@ function clearCart() {
 }
 
 // =======================
+// UPI PAY LINK (AUTO)
+// =======================
+function buildUpiLink() {
+  const amount = cartGrandTotal();
+  if (!amount || amount <= 0) return "";
+
+  // UPI Deep link
+  const pa = encodeURIComponent(UPI_ID);
+  const pn = encodeURIComponent("Sultan Mart Bharatganj");
+  const tn = encodeURIComponent(`Order #${orderId || "SultanMart"}`);
+  const am = encodeURIComponent(String(amount));
+  const cu = "INR";
+
+  return `upi://pay?pa=${pa}&pn=${pn}&tn=${tn}&am=${am}&cu=${cu}`;
+}
+
+function updateUpiBox() {
+  if ((customer.payment || "") === "UPI") {
+    const link = buildUpiLink();
+    upiPayBtn.href = link;
+    upiPayBox.style.display = "block";
+  } else {
+    upiPayBox.style.display = "none";
+  }
+}
+
+// =======================
 // RENDER CART
 // =======================
 function renderCart() {
@@ -198,6 +229,8 @@ function renderCart() {
   subTotalEl.textContent = cartSubTotal();
   deliveryChargeEl.textContent = getDeliveryCharge();
   grandTotalEl.textContent = cartGrandTotal();
+
+  updateUpiBox();
 }
 
 // =======================
@@ -236,7 +269,7 @@ function productCard(p) {
 }
 
 // =======================
-// FILTER + SORT (TRENDING/OFFER TOP)
+// FILTER + SORT
 // =======================
 function filteredProducts() {
   let list = allProducts.filter(p => {
@@ -248,10 +281,6 @@ function filteredProducts() {
     return matchesCat && matchesSearch;
   });
 
-  // Sorting:
-  // 1) Offer first
-  // 2) In-stock first
-  // 3) By stock high -> low
   list.sort((a, b) => {
     const aMrp = toNumber(a.MRP);
     const bMrp = toNumber(b.MRP);
@@ -264,15 +293,12 @@ function filteredProducts() {
     const aStock = toNumber(a.stock);
     const bStock = toNumber(b.stock);
 
-    // Offer
     if (bDisc !== aDisc) return bDisc - aDisc;
 
-    // In stock
     const aIn = aStock > 0 ? 1 : 0;
     const bIn = bStock > 0 ? 1 : 0;
     if (bIn !== aIn) return bIn - aIn;
 
-    // Stock high
     return bStock - aStock;
   });
 
@@ -290,8 +316,6 @@ function renderCategories() {
 
 function renderProducts() {
   const list = filteredProducts();
-
-  // Offers top
   const offers = list.filter(p => getDiscountPercent(toNumber(p.MRP), toNumber(p.sale)) > 0);
 
   offersGrid.innerHTML = offers.map(productCard).join("") || `<div style="opacity:.7">No offers available</div>`;
@@ -372,6 +396,7 @@ function buildWhatsAppMessage() {
 
   if ((customer.payment || "") === "UPI") {
     msg += `💳 UPI ID: ${UPI_ID}\n`;
+    msg += `📌 Pay Link: ${buildUpiLink()}\n`;
     msg += `📸 Screenshot भेजें.\n\n`;
   }
 
@@ -407,13 +432,6 @@ whatsappBtn.addEventListener("click", () => {
   window.open(url, "_blank");
 });
 
-confirmBtn.addEventListener("click", () => {
-  if (cart.length === 0) return alert("Cart is empty!");
-  alert("✅ Your order is confirmed! Thank you 😊");
-  clearCart();
-  closeCart();
-});
-
 clearCartBtn.addEventListener("click", clearCart);
 
 // Copy UPI
@@ -423,6 +441,18 @@ copyUpiBtn.addEventListener("click", async () => {
     await navigator.clipboard.writeText(UPI_ID);
     copyUpiBtn.textContent = "Copied!";
     setTimeout(() => copyUpiBtn.textContent = "Copy", 1200);
+  } catch {
+    alert("Copy not supported on this device");
+  }
+});
+
+// Copy UPI Link
+copyUpiLinkBtn.addEventListener("click", async () => {
+  try {
+    const link = buildUpiLink();
+    await navigator.clipboard.writeText(link);
+    copyUpiLinkBtn.textContent = "Copied!";
+    setTimeout(() => copyUpiLinkBtn.textContent = "Copy Link", 1200);
   } catch {
     alert("Copy not supported on this device");
   }
@@ -458,6 +488,8 @@ function bindCustomerForm() {
   custTime.value = customer.time || "";
   paymentMethod.value = customer.payment || "";
   custNote.value = customer.note || "";
+
+  updateUpiBox();
 }
 
 // =======================
