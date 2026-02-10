@@ -1,269 +1,276 @@
-/* =========================================
-   Sultan Mart Bharatganj - PWA Grocery App
-   Full app.js (Copy-Paste)
-   ========================================= */
+/***********************
+ Sultan Mart - app.js
+ Fully Copy Paste
+***********************/
 
-/* -------------------------
-   YOUR SETTINGS (EDIT ONLY)
-   ------------------------- */
+// ====== SETTINGS ======
+const SHOP_NAME = "Sultan Mart Bharatganj";
+const WHATSAPP_NUMBER = "919559868648"; // with country code
+const CALL_NUMBER = "9559868648";
+const MIN_ORDER = 199;
+const UPI_ID = "9559868648@ptyes";
 
-// Google Sheet CSV link (IMPORTANT)
-// Your sheet must be PUBLIC and headers must be exactly:
-// ID,Name,Category,MRP,Discount,Sale Price,Stock,Image
-
-// ⚠️ Replace this with your actual sheet CSV link
+// ✅ YOUR GOOGLE SHEET CSV LINK
 const GOOGLE_SHEET_CSV =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0DkCrsf4_AD96Kv9yaYNbMUUHpQtz59zkXH9f1T9mPI2pXB-OcXTR0pdO-9sgyarYD4pEp8nolt5R/pub?output=csv";
 
-// Shop details
-const SHOP_NAME = "Sultan Mart Bharatganj";
-const SHOP_PHONE = "9559868648";
-const WHATSAPP_NUMBER = "9559868648";
-const UPI_ID = "9559868648@ptyes";
-
-// Delivery rules
-const MIN_ORDER = 199;
-const OTHER_AREA_CHARGE = 20;
-
-// Delivery slots
-const DELIVERY_SLOTS = [
-  { value: "Morning (7 AM - 11 AM)", label: "Morning (7 AM - 11 AM)" },
-  { value: "Afternoon (12 PM - 4 PM)", label: "Afternoon (12 PM - 4 PM)" },
-  { value: "Evening (5 PM - 9 PM)", label: "Evening (5 PM - 9 PM)" },
-];
-
-// Delivery areas
+// ===== Delivery Charges (Area Wise) =====
 const DELIVERY_AREAS = [
-  { value: "Bharatganj", label: "Bharatganj (Free)", charge: 0 },
-  { value: "Other", label: "Other Areas (₹20)", charge: OTHER_AREA_CHARGE },
+  { name: "Bharatganj (Free)", charge: 0 },
+  { name: "Nearby 2-3 KM (₹20)", charge: 20 },
+  { name: "Nearby 4-6 KM (₹40)", charge: 40 },
+  { name: "Outside Area (₹60)", charge: 60 }
 ];
 
-/* -------------------------
-   GLOBAL STATE
-   ------------------------- */
+// ===== Delivery Day =====
+const DELIVERY_DAYS = [
+  "Today",
+  "Tomorrow",
+  "Day After Tomorrow"
+];
 
+// ===== Delivery Slot =====
+const DELIVERY_SLOTS = [
+  "Morning (7 AM - 11 AM)",
+  "Afternoon (12 PM - 4 PM)",
+  "Evening (5 PM - 10 PM)"
+];
+
+// ===== Payment Methods =====
+const PAYMENT_METHODS = [
+  "Cash on Delivery",
+  "UPI (Pay First)",
+  "UPI (Pay on Delivery)"
+];
+
+// ====== DOM ======
+const productGrid = document.getElementById("productGrid");
+const loadingText = document.getElementById("loadingText");
+const searchInput = document.getElementById("searchInput");
+const categoryChips = document.getElementById("categoryChips");
+
+const openCartBtn = document.getElementById("openCartBtn");
+const closeCartBtn = document.getElementById("closeCartBtn");
+const cartModal = document.getElementById("cartModal");
+
+const cartCount = document.getElementById("cartCount");
+const cartItemsList = document.getElementById("cartItemsList");
+
+const billSubtotal = document.getElementById("billSubtotal");
+const billDelivery = document.getElementById("billDelivery");
+const billGrand = document.getElementById("billGrand");
+
+const custName = document.getElementById("custName");
+const custMobile = document.getElementById("custMobile");
+const custAddress = document.getElementById("custAddress");
+
+const deliveryArea = document.getElementById("deliveryArea");
+const deliveryDay = document.getElementById("deliveryDay");
+const deliverySlot = document.getElementById("deliverySlot");
+const paymentMethod = document.getElementById("paymentMethod");
+
+const upiText = document.getElementById("upiText");
+const copyUpiBtn = document.getElementById("copyUpiBtn");
+
+const callLink = document.getElementById("callLink");
+const confirmOrderBtn = document.getElementById("confirmOrderBtn");
+
+// ====== STATE ======
 let allProducts = [];
 let filteredProducts = [];
-let cart = [];
-let selectedCategory = "All";
+let categories = ["All"];
+let activeCategory = "All";
+let cart = {}; // {id: qty}
 
-/* -------------------------
-   HELPERS
-   ------------------------- */
-
-const qs = (s) => document.querySelector(s);
-const qsa = (s) => document.querySelectorAll(s);
-
-function rupee(n) {
+// ====== HELPERS ======
+function rupee(n){
   const num = Number(n || 0);
-  return "₹" + Math.round(num);
+  return "₹" + num.toLocaleString("en-IN");
 }
 
-function safeText(t) {
+function safeText(t){
   return String(t || "").trim();
 }
 
-function parseNumber(v) {
-  if (v === null || v === undefined) return 0;
-  const x = String(v).replace(/[^\d.]/g, "");
-  return Number(x || 0);
+function toNumber(x){
+  const n = Number(String(x || "").replace(/[^\d.]/g, ""));
+  return isNaN(n) ? 0 : n;
 }
 
-/* -------------------------
-   CSV PARSER
-   ------------------------- */
-
-function csvToArray(csv) {
+function parseCSV(text){
+  // Simple CSV parser (handles commas inside quotes)
   const rows = [];
   let row = [];
-  let col = "";
-  let insideQuotes = false;
+  let cur = "";
+  let inQuotes = false;
 
-  for (let i = 0; i < csv.length; i++) {
-    const c = csv[i];
-    const next = csv[i + 1];
+  for(let i=0;i<text.length;i++){
+    const ch = text[i];
+    const next = text[i+1];
 
-    if (c === '"' && insideQuotes && next === '"') {
-      col += '"';
+    if(ch === '"' && inQuotes && next === '"'){
+      cur += '"';
       i++;
-      continue;
-    }
-
-    if (c === '"') {
-      insideQuotes = !insideQuotes;
-      continue;
-    }
-
-    if (c === "," && !insideQuotes) {
-      row.push(col);
-      col = "";
-      continue;
-    }
-
-    if ((c === "\n" || c === "\r") && !insideQuotes) {
-      if (col.length > 0 || row.length > 0) {
-        row.push(col);
+    } else if(ch === '"'){
+      inQuotes = !inQuotes;
+    } else if(ch === "," && !inQuotes){
+      row.push(cur);
+      cur = "";
+    } else if((ch === "\n" || ch === "\r") && !inQuotes){
+      if(cur.length || row.length){
+        row.push(cur);
         rows.push(row);
       }
       row = [];
-      col = "";
-      continue;
+      cur = "";
+    } else {
+      cur += ch;
     }
-
-    col += c;
   }
-
-  if (col.length > 0 || row.length > 0) {
-    row.push(col);
+  if(cur.length || row.length){
+    row.push(cur);
     rows.push(row);
   }
-
   return rows;
 }
 
-/* -------------------------
-   LOAD PRODUCTS FROM SHEET
-   ------------------------- */
+// ====== LOAD DATA ======
+async function loadProducts(){
+  loadingText.style.display = "block";
+  productGrid.innerHTML = "";
 
-async function loadProducts() {
-  qs("#loadingText").style.display = "block";
-  qs("#loadingText").innerText = "Loading products from Google Sheet...";
+  try{
+    // Cache busting so Google sheet change reflects
+    const url = GOOGLE_SHEET_CSV + "&t=" + Date.now();
 
-  try {
-    const url = GOOGLE_SHEET_CSV + "&_ts=" + Date.now();
     const res = await fetch(url);
     const csv = await res.text();
 
-    const rows = csvToArray(csv);
+    const rows = parseCSV(csv);
+    const header = rows[0].map(h => h.trim().toLowerCase());
 
-    if (!rows || rows.length < 2) throw new Error("Sheet is empty.");
+    // Expected headers
+    // ID, Name, Category, MRP, Discount, Sale Price, Stock, Image
+    const idx = (name) => header.indexOf(name.toLowerCase());
 
-    const headers = rows[0].map((h) => safeText(h));
+    const idI = idx("id");
+    const nameI = idx("name");
+    const catI = idx("category");
+    const mrpI = idx("mrp");
+    const discI = idx("discount");
+    const saleI = idx("sale price");
+    const stockI = idx("stock");
+    const imgI = idx("image");
 
-    const required = ["ID", "Name", "Category", "MRP", "Discount", "Sale Price", "Stock", "Image"];
-    const missing = required.filter((r) => !headers.includes(r));
-
-    if (missing.length) {
-      throw new Error(
-        "Sheet headers गलत हैं. Required headers:\n" +
-          required.join(", ") +
-          "\n\nMissing: " +
-          missing.join(", ")
-      );
+    if(nameI === -1 || catI === -1 || mrpI === -1){
+      loadingText.innerText = "❌ Sheet headers गलत हैं. Row1 में सही headers चाहिए.";
+      return;
     }
 
-    const idx = {};
-    headers.forEach((h, i) => (idx[h] = i));
+    const products = [];
 
-    allProducts = rows.slice(1).map((r) => {
-      const id = safeText(r[idx["ID"]]);
-      const name = safeText(r[idx["Name"]]);
-      const category = safeText(r[idx["Category"]]);
-      const mrp = parseNumber(r[idx["MRP"]]);
-      const discount = parseNumber(r[idx["Discount"]]);
-      const sale = parseNumber(r[idx["Sale Price"]]);
-      const stock = parseNumber(r[idx["Stock"]]);
-      const image = safeText(r[idx["Image"]]);
+    for(let r=1;r<rows.length;r++){
+      const row = rows[r];
+      if(!row || row.length < 3) continue;
 
-      let salePrice = sale;
-      if (!salePrice || salePrice <= 0) {
-        if (discount > 0) salePrice = mrp - (mrp * discount) / 100;
-        else salePrice = mrp;
+      const id = safeText(row[idI]) || String(r);
+      const name = safeText(row[nameI]);
+      const category = safeText(row[catI]) || "Other";
+
+      const mrp = toNumber(row[mrpI]);
+      const discount = toNumber(row[discI]);
+      let salePrice = toNumber(row[saleI]);
+
+      // If sale price missing -> calculate
+      if(!salePrice){
+        salePrice = Math.round(mrp - (mrp * discount / 100));
       }
 
-      return {
+      const stock = toNumber(row[stockI]);
+      const image = safeText(row[imgI]);
+
+      if(!name) continue;
+
+      products.push({
         id,
         name,
         category,
         mrp,
         discount,
-        price: Math.round(salePrice),
+        salePrice,
         stock,
-        image,
-      };
-    });
+        image
+      });
+    }
 
-    allProducts = allProducts.filter((p) => p.id && p.name);
-    filteredProducts = [...allProducts];
+    // 🔥 Trending/Offer items top (discount desc)
+    products.sort((a,b) => (b.discount || 0) - (a.discount || 0));
 
-    renderCategories();
-    renderProducts();
-    updateCartUI();
+    allProducts = products;
 
-    qs("#loadingText").style.display = "none";
-  } catch (err) {
-    qs("#loadingText").style.display = "block";
-    qs("#loadingText").innerText = "❌ Error: " + err.message;
+    // Categories
+    const catSet = new Set(["All"]);
+    allProducts.forEach(p => catSet.add(p.category));
+    categories = Array.from(catSet);
+
+    buildCategoryChips();
+    applyFilters();
+
+    loadingText.style.display = "none";
+
+  }catch(e){
+    loadingText.innerText = "❌ Error loading sheet. Check publish link.";
   }
 }
 
-/* -------------------------
-   RENDER CATEGORIES
-   ------------------------- */
+// ====== UI BUILD ======
+function buildCategoryChips(){
+  categoryChips.innerHTML = "";
 
-function renderCategories() {
-  const chipWrap = qs("#categoryChips");
-  chipWrap.innerHTML = "";
-
-  const cats = ["All", ...new Set(allProducts.map((p) => p.category))];
-
-  cats.forEach((cat) => {
+  categories.forEach(cat=>{
     const btn = document.createElement("button");
-    btn.className = "chip " + (cat === selectedCategory ? "active" : "");
+    btn.className = "chip" + (cat === activeCategory ? " active" : "");
     btn.innerText = cat;
-
-    btn.onclick = () => {
-      selectedCategory = cat;
-      qsa(".chip").forEach((x) => x.classList.remove("active"));
-      btn.classList.add("active");
+    btn.onclick = ()=>{
+      activeCategory = cat;
+      buildCategoryChips();
       applyFilters();
     };
-
-    chipWrap.appendChild(btn);
+    categoryChips.appendChild(btn);
   });
 }
 
-/* -------------------------
-   FILTERS
-   ------------------------- */
+function applyFilters(){
+  const q = safeText(searchInput.value).toLowerCase();
 
-function applyFilters() {
-  const q = safeText(qs("#searchInput").value).toLowerCase();
-
-  filteredProducts = allProducts.filter((p) => {
-    const matchText =
-      p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
-
-    const matchCat = selectedCategory === "All" ? true : p.category === selectedCategory;
-
-    return matchText && matchCat;
+  filteredProducts = allProducts.filter(p=>{
+    const matchCat = activeCategory === "All" ? true : p.category === activeCategory;
+    const matchSearch = !q ? true : (p.name.toLowerCase().includes(q));
+    return matchCat && matchSearch;
   });
 
   renderProducts();
 }
 
-/* -------------------------
-   RENDER PRODUCTS
-   ------------------------- */
+function renderProducts(){
+  productGrid.innerHTML = "";
 
-function renderProducts() {
-  const grid = qs("#productGrid");
-  grid.innerHTML = "";
-
-  if (!filteredProducts.length) {
-    grid.innerHTML = `<div style="padding:18px;font-weight:900;color:#444;">No products found.</div>`;
+  if(filteredProducts.length === 0){
+    productGrid.innerHTML = `<div style="padding:18px;font-weight:900;color:#444;">No products found.</div>`;
     return;
   }
 
-  filteredProducts.forEach((p) => {
+  filteredProducts.forEach(p=>{
     const card = document.createElement("div");
     card.className = "card";
 
-    const showOff = p.discount && p.discount > 0 && p.mrp > p.price;
+    const img = p.image ? p.image : "images/no-image.png";
+
+    const outOfStock = p.stock <= 0;
 
     card.innerHTML = `
       <div class="imgbox">
-        <img src="${p.image}" alt="${p.name}" onerror="this.src='https://dummyimage.com/600x400/f1f3f8/777&text=No+Image';">
+        <img src="${img}" alt="${p.name}" onerror="this.src='images/no-image.png'" />
       </div>
 
       <div class="content">
@@ -272,323 +279,294 @@ function renderProducts() {
 
         <div class="price-row">
           <div>
-            <span class="p-price">${rupee(p.price)}</span>
-            ${
-              showOff
-                ? `<span class="p-mrp">${rupee(p.mrp)}</span>`
-                : ""
-            }
+            <span class="p-price">${rupee(p.salePrice)}</span>
+            ${p.mrp > p.salePrice ? `<span class="p-mrp">${rupee(p.mrp)}</span>` : ""}
           </div>
         </div>
 
         <div class="badges">
-          ${
-            showOff
-              ? `<span class="badge off">${p.discount}% OFF</span>`
-              : `<span class="badge">MRP</span>`
-          }
-          <span class="badge">Stock: ${p.stock}</span>
+          ${p.discount > 0 ? `<span class="badge off">${p.discount}% OFF</span>` : ""}
+          ${outOfStock ? `<span class="badge out">Out of Stock</span>` : `<span class="badge stock">In Stock</span>`}
         </div>
 
-        <button class="btn" ${
-          p.stock <= 0 ? "disabled" : ""
-        } onclick="addToCart('${p.id}')">
-          ${p.stock <= 0 ? "Out of Stock" : "Add to Cart"}
+        <button class="btn" ${outOfStock ? "disabled" : ""} data-id="${p.id}">
+          ${outOfStock ? "Not Available" : "Add to Cart"}
         </button>
       </div>
     `;
 
-    grid.appendChild(card);
+    const btn = card.querySelector(".btn");
+    if(!outOfStock){
+      btn.onclick = ()=> addToCart(p.id);
+    }
+
+    productGrid.appendChild(card);
   });
 }
 
-/* -------------------------
-   CART FUNCTIONS
-   ------------------------- */
+// ====== CART ======
+function addToCart(id){
+  cart[id] = (cart[id] || 0) + 1;
+  saveCart();
+  updateCartUI();
+}
 
-function addToCart(id) {
-  const p = allProducts.find((x) => x.id === id);
-  if (!p) return;
+function removeFromCart(id){
+  delete cart[id];
+  saveCart();
+  updateCartUI();
+}
 
-  if (p.stock <= 0) {
-    alert("Out of stock!");
-    return;
-  }
+function changeQty(id, delta){
+  cart[id] = (cart[id] || 0) + delta;
+  if(cart[id] <= 0) delete cart[id];
+  saveCart();
+  updateCartUI();
+}
 
-  const found = cart.find((c) => c.id === id);
-  if (found) {
-    if (found.qty + 1 > p.stock) {
-      alert("Stock limit reached!");
-      return;
+function getCartItems(){
+  const items = [];
+  Object.keys(cart).forEach(id=>{
+    const p = allProducts.find(x => String(x.id) === String(id));
+    if(p){
+      items.push({ product:p, qty: cart[id] });
     }
-    found.qty += 1;
+  });
+  return items;
+}
+
+function cartTotalQty(){
+  return Object.values(cart).reduce((a,b)=>a+b,0);
+}
+
+function cartSubtotal(){
+  const items = getCartItems();
+  let sum = 0;
+  items.forEach(i=>{
+    sum += (i.product.salePrice * i.qty);
+  });
+  return sum;
+}
+
+function deliveryCharge(){
+  const area = DELIVERY_AREAS[deliveryArea.selectedIndex] || DELIVERY_AREAS[0];
+  return area.charge || 0;
+}
+
+function grandTotal(){
+  return cartSubtotal() + deliveryCharge();
+}
+
+// ====== CART UI ======
+function updateCartUI(){
+  cartCount.innerText = cartTotalQty();
+
+  const items = getCartItems();
+  cartItemsList.innerHTML = "";
+
+  if(items.length === 0){
+    cartItemsList.innerHTML = `<div style="padding:10px;font-weight:900;color:#666;">Cart is empty.</div>`;
   } else {
-    cart.push({
-      id: p.id,
-      name: p.name,
-      category: p.category,
-      price: p.price,
-      mrp: p.mrp,
-      img: p.image,
-      qty: 1,
-    });
-  }
-
-  updateCartUI();
-}
-
-function changeQty(id, delta) {
-  const p = allProducts.find((x) => x.id === id);
-  const c = cart.find((x) => x.id === id);
-  if (!c) return;
-
-  c.qty += delta;
-
-  if (c.qty <= 0) {
-    cart = cart.filter((x) => x.id !== id);
-  } else {
-    if (p && c.qty > p.stock) {
-      c.qty = p.stock;
-      alert("Max stock reached!");
-    }
-  }
-
-  updateCartUI();
-}
-
-function removeItem(id) {
-  cart = cart.filter((x) => x.id !== id);
-  updateCartUI();
-}
-
-function cartCount() {
-  return cart.reduce((sum, x) => sum + x.qty, 0);
-}
-
-function cartSubtotal() {
-  return cart.reduce((sum, x) => sum + x.price * x.qty, 0);
-}
-
-function getDeliveryCharge() {
-  const area = qs("#deliveryArea").value;
-  const areaObj = DELIVERY_AREAS.find((a) => a.value === area);
-  return areaObj ? areaObj.charge : OTHER_AREA_CHARGE;
-}
-
-function updateCartUI() {
-  qs("#cartCount").innerText = cartCount();
-
-  const list = qs("#cartItemsList");
-  list.innerHTML = "";
-
-  if (!cart.length) {
-    list.innerHTML = `<div style="padding:10px;font-weight:900;color:#555;">Cart is empty.</div>`;
-  } else {
-    cart.forEach((item) => {
+    items.forEach(i=>{
+      const p = i.product;
       const row = document.createElement("div");
       row.className = "cart-row";
+
+      const img = p.image ? p.image : "images/no-image.png";
+
       row.innerHTML = `
-        <img src="${item.img}" onerror="this.src='https://dummyimage.com/600x400/f1f3f8/777&text=No+Image';">
+        <img src="${img}" onerror="this.src='images/no-image.png'" />
+
         <div class="info">
-          <div class="title">${item.name}</div>
-          <div class="sub">${item.category} • ${rupee(item.price)} each</div>
+          <div class="title">${p.name}</div>
+          <div class="sub">${rupee(p.salePrice)} × ${i.qty} = ${rupee(p.salePrice*i.qty)}</div>
         </div>
 
         <div class="qty">
-          <button onclick="changeQty('${item.id}', -1)">-</button>
-          <span>${item.qty}</span>
-          <button onclick="changeQty('${item.id}', 1)">+</button>
+          <button title="Minus">−</button>
+          <span>${i.qty}</span>
+          <button title="Plus">+</button>
         </div>
 
-        <button class="remove" onclick="removeItem('${item.id}')">Remove</button>
+        <button class="remove" title="Remove">✖</button>
       `;
-      list.appendChild(row);
+
+      const minus = row.querySelectorAll(".qty button")[0];
+      const plus = row.querySelectorAll(".qty button")[1];
+      const remove = row.querySelector(".remove");
+
+      minus.onclick = ()=> changeQty(p.id, -1);
+      plus.onclick = ()=> changeQty(p.id, 1);
+      remove.onclick = ()=> removeFromCart(p.id);
+
+      cartItemsList.appendChild(row);
     });
   }
 
-  const sub = cartSubtotal();
-  const charge = getDeliveryCharge();
-  const grand = sub + charge;
+  // Bill
+  billSubtotal.innerText = rupee(cartSubtotal());
 
-  qs("#billSubtotal").innerText = rupee(sub);
-  qs("#billDelivery").innerText = charge === 0 ? "Free" : rupee(charge);
-  qs("#billGrand").innerText = rupee(grand);
+  const d = deliveryCharge();
+  billDelivery.innerText = d === 0 ? "Free" : rupee(d);
 
-  qs("#callLink").href = "tel:" + SHOP_PHONE;
-  qs("#upiText").innerText = UPI_ID;
+  billGrand.innerText = rupee(grandTotal());
 }
 
-/* -------------------------
-   MODAL OPEN/CLOSE
-   ------------------------- */
-
-function openCart() {
-  qs("#cartModal").classList.add("open");
+// ====== MODAL ======
+function openCart(){
+  cartModal.classList.add("open");
+  updateCartUI();
 }
 
-function closeCart() {
-  qs("#cartModal").classList.remove("open");
+function closeCart(){
+  cartModal.classList.remove("open");
 }
 
-/* -------------------------
-   COPY UPI
-   ------------------------- */
-
-function copyUPI() {
-  navigator.clipboard.writeText(UPI_ID);
-  alert("UPI ID Copied: " + UPI_ID);
-}
-
-/* -------------------------
-   ORDER CONFIRM (WhatsApp)
-   ------------------------- */
-
-function buildOrderMessage() {
-  const name = safeText(qs("#custName").value);
-  const mobile = safeText(qs("#custMobile").value);
-  const address = safeText(qs("#custAddress").value);
-
-  const area = qs("#deliveryArea").value;
-  const day = qs("#deliveryDay").value;
-  const slot = qs("#deliverySlot").value;
-  const payment = qs("#paymentMethod").value;
-
-  const sub = cartSubtotal();
-  const charge = getDeliveryCharge();
-  const grand = sub + charge;
-
-  let msg = `🛒 *${SHOP_NAME}*\n`;
-  msg += `✅ *New Order Request*\n\n`;
-
-  msg += `👤 Name: ${name}\n`;
-  msg += `📞 Mobile: ${mobile}\n`;
-  msg += `🏠 Address: ${address}\n\n`;
-
-  msg += `🚚 Delivery Area: ${area}\n`;
-  msg += `📅 Delivery Day: ${day}\n`;
-  msg += `⏰ Time Slot: ${slot}\n\n`;
-
-  msg += `💳 Payment: ${payment}\n`;
-  if (payment === "UPI Payment") msg += `🧾 UPI ID: ${UPI_ID}\n`;
-  msg += `\n`;
-
-  msg += `🧺 *Items:*\n`;
-  cart.forEach((x, i) => {
-    msg += `${i + 1}. ${x.name}  x${x.qty}  = ${rupee(x.price * x.qty)}\n`;
+// ====== FORM DROPDOWNS ======
+function fillDropdowns(){
+  // Area
+  deliveryArea.innerHTML = "";
+  DELIVERY_AREAS.forEach(a=>{
+    const opt = document.createElement("option");
+    opt.value = a.name;
+    opt.innerText = a.name;
+    deliveryArea.appendChild(opt);
   });
 
-  msg += `\n📌 Subtotal: ${rupee(sub)}\n`;
-  msg += `🚚 Delivery Charge: ${charge === 0 ? "Free" : rupee(charge)}\n`;
-  msg += `💰 *Grand Total: ${rupee(grand)}*\n\n`;
+  // Day
+  deliveryDay.innerHTML = "";
+  DELIVERY_DAYS.forEach(d=>{
+    const opt = document.createElement("option");
+    opt.value = d;
+    opt.innerText = d;
+    deliveryDay.appendChild(opt);
+  });
 
-  msg += `🙏 Please confirm my order.`;
+  // Slot
+  deliverySlot.innerHTML = "";
+  DELIVERY_SLOTS.forEach(s=>{
+    const opt = document.createElement("option");
+    opt.value = s;
+    opt.innerText = s;
+    deliverySlot.appendChild(opt);
+  });
+
+  // Payment
+  paymentMethod.innerHTML = "";
+  PAYMENT_METHODS.forEach(p=>{
+    const opt = document.createElement("option");
+    opt.value = p;
+    opt.innerText = p;
+    paymentMethod.appendChild(opt);
+  });
+
+  // UPI
+  upiText.innerText = UPI_ID;
+
+  // Call link
+  callLink.href = "tel:" + CALL_NUMBER;
+}
+
+// ====== WHATSAPP ORDER ======
+function buildWhatsAppMessage(){
+  const items = getCartItems();
+  if(items.length === 0) return "";
+
+  const name = safeText(custName.value);
+  const mobile = safeText(custMobile.value);
+  const address = safeText(custAddress.value);
+
+  const area = deliveryArea.value;
+  const day = deliveryDay.value;
+  const slot = deliverySlot.value;
+  const pay = paymentMethod.value;
+
+  let msg = `🛒 *New Order - ${SHOP_NAME}*\n\n`;
+
+  msg += `👤 Name: ${name || "Not Given"}\n`;
+  msg += `📞 Mobile: ${mobile || "Not Given"}\n`;
+  msg += `🏠 Address: ${address || "Not Given"}\n\n`;
+
+  msg += `📦 Delivery Area: ${area}\n`;
+  msg += `📅 Day: ${day}\n`;
+  msg += `⏰ Time Slot: ${slot}\n`;
+  msg += `💳 Payment: ${pay}\n\n`;
+
+  msg += `🧾 *Items:*\n`;
+
+  items.forEach((i, idx)=>{
+    msg += `${idx+1}) ${i.product.name}\n   ${rupee(i.product.salePrice)} × ${i.qty} = ${rupee(i.product.salePrice*i.qty)}\n`;
+  });
+
+  msg += `\nSubtotal: ${rupee(cartSubtotal())}\n`;
+
+  const d = deliveryCharge();
+  msg += `Delivery: ${d===0 ? "Free" : rupee(d)}\n`;
+
+  msg += `*Grand Total: ${rupee(grandTotal())}*\n\n`;
+
+  msg += `✅ Please confirm my order.`;
 
   return msg;
 }
 
-function confirmOrder() {
-  if (!cart.length) {
+function confirmOrder(){
+  const items = getCartItems();
+  if(items.length === 0){
     alert("Cart is empty!");
     return;
   }
 
-  const name = safeText(qs("#custName").value);
-  const mobile = safeText(qs("#custMobile").value);
-  const address = safeText(qs("#custAddress").value);
+  const msg = buildWhatsAppMessage();
+  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
 
-  if (!name || !mobile || !address) {
-    alert("Please fill Name, Mobile, Address.");
-    return;
-  }
+  // Open WhatsApp
+  window.open(url, "_blank");
 
-  if (mobile.length < 10) {
-    alert("Mobile number सही डालो!");
-    return;
-  }
-
-  const message = buildOrderMessage();
-  const wa = `https://wa.me/91${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-  window.open(wa, "_blank");
-
-  alert("✅ Order Request Sent on WhatsApp!\n\nShop will confirm your order soon.");
-
-  cart = [];
+  // Clear cart after click
+  cart = {};
+  saveCart();
   updateCartUI();
+
+  alert("✅ Order Confirmed! Cart cleared.");
   closeCart();
-
-  qs("#custName").value = "";
-  qs("#custMobile").value = "";
-  qs("#custAddress").value = "";
 }
 
-/* -------------------------
-   INIT DROPDOWNS
-   ------------------------- */
-
-function initDeliveryUI() {
-  const areaSel = qs("#deliveryArea");
-  areaSel.innerHTML = "";
-  DELIVERY_AREAS.forEach((a) => {
-    const opt = document.createElement("option");
-    opt.value = a.value;
-    opt.innerText = a.label;
-    areaSel.appendChild(opt);
-  });
-
-  const daySel = qs("#deliveryDay");
-  daySel.innerHTML = "";
-  ["Today", "Tomorrow"].forEach((d) => {
-    const opt = document.createElement("option");
-    opt.value = d;
-    opt.innerText = d;
-    daySel.appendChild(opt);
-  });
-
-  const slotSel = qs("#deliverySlot");
-  slotSel.innerHTML = "";
-  DELIVERY_SLOTS.forEach((s) => {
-    const opt = document.createElement("option");
-    opt.value = s.value;
-    opt.innerText = s.label;
-    slotSel.appendChild(opt);
-  });
-
-  const paySel = qs("#paymentMethod");
-  paySel.innerHTML = "";
-  ["UPI Payment", "Cash on Delivery"].forEach((p) => {
-    const opt = document.createElement("option");
-    opt.value = p;
-    opt.innerText = p;
-    paySel.appendChild(opt);
-  });
-
-  areaSel.addEventListener("change", () => updateCartUI());
+// ====== STORAGE ======
+function saveCart(){
+  localStorage.setItem("sultan_cart", JSON.stringify(cart));
 }
 
-/* -------------------------
-   EVENT LISTENERS
-   ------------------------- */
+function loadCart(){
+  try{
+    cart = JSON.parse(localStorage.getItem("sultan_cart") || "{}");
+  }catch{
+    cart = {};
+  }
+}
 
-window.addEventListener("load", () => {
-  qs("#openCartBtn").addEventListener("click", openCart);
-  qs("#closeCartBtn").addEventListener("click", closeCart);
+// ====== EVENTS ======
+searchInput.addEventListener("input", applyFilters);
 
-  qs("#copyUpiBtn").addEventListener("click", copyUPI);
-  qs("#confirmOrderBtn").addEventListener("click", confirmOrder);
+openCartBtn.onclick = openCart;
+closeCartBtn.onclick = closeCart;
 
-  qs("#searchInput").addEventListener("input", applyFilters);
-
-  qs("#cartModal").addEventListener("click", (e) => {
-    if (e.target.classList.contains("modal-overlay")) closeCart();
-  });
-
-  initDeliveryUI();
-  loadProducts();
+cartModal.addEventListener("click", (e)=>{
+  if(e.target === cartModal) closeCart();
 });
 
-/* -------------------------
-   MAKE FUNCTIONS GLOBAL
-   ------------------------- */
-window.addToCart = addToCart;
-window.changeQty = changeQty;
-window.removeItem = removeItem;
+deliveryArea.addEventListener("change", updateCartUI);
+
+copyUpiBtn.onclick = ()=>{
+  navigator.clipboard.writeText(UPI_ID);
+  copyUpiBtn.innerText = "Copied!";
+  setTimeout(()=> copyUpiBtn.innerText = "Copy", 1200);
+};
+
+confirmOrderBtn.onclick = confirmOrder;
+
+// ====== INIT ======
+fillDropdowns();
+loadCart();
+updateCartUI();
+loadProducts();
