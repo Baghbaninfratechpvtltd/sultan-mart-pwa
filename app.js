@@ -1,382 +1,430 @@
-// =====================================
-// Sultan Mart - Full Copy Paste App.js
-// =====================================
+// ==============================
+// Sultan Mart PWA - app.js
+// ==============================
 
-// CSV LINK (ALREADY SET)
+// ✅ YOUR GOOGLE SHEET CSV (PUBLIC)
 const SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0DkCrsf4_AD96Kv9yaYNbMUUHpQtz59zkXH9f1T9mPI2pXB-OcXTR0pdO-9sgyarYD4pEp8nolt5R/pub?output=csv";
 
-const SHOP_NAME = "Sultan Mart Bharatganj";
-const WHATSAPP_NUMBER = "9559868648";
-const UPI_ID = "9559868648@ptyes";
+// ✅ Store WhatsApp + Phone + UPI
+const STORE_WHATSAPP = "9559868648";
+const STORE_CALL = "9559868648";
+const STORE_UPI = "9559868648@ptyes";
+
+// Delivery Charges
+const DELIVERY_CHARGE_OTHER = 20;
+const FREE_AREA = "Bharatganj";
+const MIN_ORDER = 199;
 
 // DOM
 const productsGrid = document.getElementById("productsGrid");
 const offersGrid = document.getElementById("offersGrid");
-const categoryRow = document.getElementById("categoryRow");
 const searchInput = document.getElementById("searchInput");
+const categoryChips = document.getElementById("categoryChips");
 
 const cartBtn = document.getElementById("cartBtn");
-const cartCount = document.getElementById("cartCount");
 const cartModal = document.getElementById("cartModal");
-const closeModal = document.getElementById("closeModal");
-const closeModalBtn = document.getElementById("closeModalBtn");
-
-const cartItems = document.getElementById("cartItems");
-
-const custName = document.getElementById("custName");
-const custMobile = document.getElementById("custMobile");
-const custAddress = document.getElementById("custAddress");
-
-const deliveryArea = document.getElementById("deliveryArea");
-const deliveryDay = document.getElementById("deliveryDay");
-const deliverySlot = document.getElementById("deliverySlot");
-
-const paymentMethod = document.getElementById("paymentMethod");
-const upiBox = document.getElementById("upiBox");
-const upiIdText = document.getElementById("upiIdText");
-const copyUpiBtn = document.getElementById("copyUpiBtn");
+const closeCart = document.getElementById("closeCart");
+const cartItemsDiv = document.getElementById("cartItems");
+const cartCount = document.getElementById("cartCount");
 
 const itemsTotalEl = document.getElementById("itemsTotal");
 const deliveryChargeEl = document.getElementById("deliveryCharge");
 const grandTotalEl = document.getElementById("grandTotal");
 
-const whatsappBtn = document.getElementById("whatsappBtn");
-const confirmBtn = document.getElementById("confirmBtn");
-const clearCartBtn = document.getElementById("clearCartBtn");
+const deliveryArea = document.getElementById("deliveryArea");
+const deliveryDay = document.getElementById("deliveryDay");
+const deliverySlot = document.getElementById("deliverySlot");
+const paymentMethod = document.getElementById("paymentMethod");
 
-// STATE
-let ALL_PRODUCTS = [];
-let FILTERED_PRODUCTS = [];
-let ACTIVE_CATEGORY = "All";
-let CART = loadCart();
+const custName = document.getElementById("custName");
+const custPhone = document.getElementById("custPhone");
+const custAddress = document.getElementById("custAddress");
 
-// HELPERS
-function money(n) { return "₹" + Number(n || 0).toFixed(0); }
-function safeNum(v) { const x = Number(String(v || "").trim()); return isNaN(x) ? 0 : x; }
+const whatsappOrderBtn = document.getElementById("whatsappOrder");
+const copyUpiBtn = document.getElementById("copyUpi");
+document.getElementById("upiIdText").innerText = STORE_UPI;
 
-function percentOff(mrp, sale) {
-  mrp = safeNum(mrp);
-  sale = safeNum(sale);
-  if (mrp <= 0) return 0;
-  const off = Math.round(((mrp - sale) / mrp) * 100);
-  return off > 0 ? off : 0;
+document.getElementById("year").innerText = new Date().getFullYear();
+
+// Data
+let allProducts = [];
+let filteredProducts = [];
+let activeCategory = "All";
+
+// Cart
+let cart = JSON.parse(localStorage.getItem("sultan_cart") || "{}");
+
+// ==============================
+// Helpers
+// ==============================
+function money(n) {
+  const x = Number(n || 0);
+  return "₹" + Math.round(x);
 }
 
-// CSV PARSER
-function parseCSV(text) {
-  const rows = [];
-  let cur = "";
-  let inQuotes = false;
-  let row = [];
-
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    const next = text[i + 1];
-
-    if (ch === '"' && inQuotes && next === '"') {
-      cur += '"'; i++; continue;
-    }
-    if (ch === '"') { inQuotes = !inQuotes; continue; }
-
-    if (ch === "," && !inQuotes) { row.push(cur); cur = ""; continue; }
-
-    if ((ch === "\n" || ch === "\r") && !inQuotes) {
-      if (cur.length || row.length) { row.push(cur); rows.push(row); row = []; cur = ""; }
-      continue;
-    }
-    cur += ch;
-  }
-
-  if (cur.length || row.length) { row.push(cur); rows.push(row); }
-  return rows;
+function normalize(s) {
+  return (s || "").toString().trim();
 }
 
-function csvToObjects(csvText) {
-  const table = parseCSV(csvText);
-  if (!table.length) return [];
+function toNumber(x) {
+  const n = Number((x || "").toString().replace(/[^\d.]/g, ""));
+  return isNaN(n) ? 0 : n;
+}
 
-  const headers = table[0].map(h => String(h).trim());
-  const out = [];
+function parseCSV(csvText) {
+  // Simple CSV parser (works for normal sheets)
+  const rows = csvText.split("\n").map(r => r.trim()).filter(Boolean);
+  const data = [];
+  const headers = rows[0].split(",").map(h => normalize(h));
 
-  for (let i = 1; i < table.length; i++) {
-    const r = table[i];
-    if (!r || !r.length) continue;
-
+  for (let i = 1; i < rows.length; i++) {
+    const cols = rows[i].split(",").map(c => normalize(c));
     const obj = {};
-    headers.forEach((h, idx) => { obj[h] = (r[idx] ?? "").trim(); });
-    if (Object.values(obj).join("").trim() === "") continue;
-    out.push(obj);
+    headers.forEach((h, idx) => obj[h] = cols[idx] || "");
+    data.push(obj);
   }
-  return out;
+  return data;
 }
 
-function normalizeRow(row) {
-  const id = String(row["ID"] || "").trim() || crypto.randomUUID();
-  const name = String(row["Name"] || "").trim();
-  const category = String(row["Category"] || "Other").trim();
-  const mrp = safeNum(row["MRP"]);
-  const discount = safeNum(row["Discount"]);
-  const salePrice = safeNum(row["Sale Price"]);
-  const stock = safeNum(row["Stock"]);
-  const image = String(row["Image"] || "").trim();
+// ==============================
+// Load Products
+// ==============================
+async function loadProducts() {
+  try {
+    const res = await fetch(SHEET_CSV_URL, { cache: "no-store" });
 
-  const finalSale = salePrice > 0 ? salePrice : Math.max(0, mrp - discount);
+    if (!res.ok) throw new Error("CSV Link Wrong / Sheet Not Public");
 
-  return {
-    id,
-    name,
-    category,
-    mrp,
-    discount,
-    salePrice: finalSale,
-    stock,
-    image,
-    offPercent: percentOff(mrp, finalSale)
-  };
+    const text = await res.text();
+    const raw = parseCSV(text);
+
+    // Expected headers:
+    // ID, Name, Category, MRP, Discount, Sale Price, Stock, Image
+    allProducts = raw.map(r => {
+      const mrp = toNumber(r.MRP);
+      const sale = toNumber(r["Sale Price"]);
+      const discount = toNumber(r.Discount);
+      const stock = toNumber(r.Stock);
+
+      // if sale missing, auto calculate
+      const salePrice = sale > 0 ? sale : Math.max(0, mrp - (mrp * discount / 100));
+
+      // if discount missing, auto calculate
+      const off = discount > 0 ? discount : (mrp > 0 ? Math.round(((mrp - salePrice) / mrp) * 100) : 0);
+
+      return {
+        id: normalize(r.ID) || crypto.randomUUID(),
+        name: normalize(r.Name),
+        category: normalize(r.Category) || "Other",
+        mrp: mrp,
+        sale: salePrice,
+        discount: off,
+        stock: stock || 0,
+        image: normalize(r.Image) || "",
+      };
+    }).filter(p => p.name);
+
+    filteredProducts = [...allProducts];
+    renderCategories();
+    renderAll();
+    updateCartUI();
+  } catch (err) {
+    productsGrid.innerHTML = `
+      <div style="padding:16px;background:#fff;border-radius:18px;box-shadow:var(--shadow)">
+        <b>❌ ${err.message}</b>
+        <p style="color:#666;margin:8px 0 0">
+          Fix: Google Sheet → Share → Anyone with link (Viewer)  
+          + File → Publish to web → CSV
+        </p>
+      </div>
+    `;
+  }
 }
 
-// CART STORAGE
-function saveCart() { localStorage.setItem("sultan_cart", JSON.stringify(CART)); }
-function loadCart() { try { return JSON.parse(localStorage.getItem("sultan_cart") || "[]"); } catch { return []; } }
-function cartCountTotal() { return CART.reduce((sum, i) => sum + i.qty, 0); }
-function cartItemsTotal() { return CART.reduce((sum, i) => sum + (i.salePrice * i.qty), 0); }
-function deliveryCharge() { return deliveryArea.value === "other" ? 20 : 0; }
-function grandTotal() { return cartItemsTotal() + deliveryCharge(); }
-
-// RENDER
+// ==============================
+// Render Categories
+// ==============================
 function renderCategories() {
-  const cats = ["All", ...new Set(ALL_PRODUCTS.map(p => p.category))];
+  const cats = ["All", ...new Set(allProducts.map(p => p.category))];
 
-  categoryRow.innerHTML = cats.map(cat => {
-    const active = cat === ACTIVE_CATEGORY ? "active" : "";
-    return `<button class="cat-pill ${active}" data-cat="${cat}">${cat}</button>`;
-  }).join("");
-
-  categoryRow.querySelectorAll(".cat-pill").forEach(btn => {
-    btn.addEventListener("click", () => {
-      ACTIVE_CATEGORY = btn.dataset.cat;
-      renderCategories();
+  categoryChips.innerHTML = "";
+  cats.forEach(cat => {
+    const btn = document.createElement("button");
+    btn.className = "chip" + (cat === activeCategory ? " active" : "");
+    btn.innerText = cat;
+    btn.onclick = () => {
+      activeCategory = cat;
+      document.querySelectorAll(".chip").forEach(x => x.classList.remove("active"));
+      btn.classList.add("active");
       applyFilters();
-    });
+    };
+    categoryChips.appendChild(btn);
   });
 }
 
+// ==============================
+// Filters
+// ==============================
+function applyFilters() {
+  const q = normalize(searchInput.value).toLowerCase();
+
+  filteredProducts = allProducts.filter(p => {
+    const matchCategory = activeCategory === "All" ? true : p.category === activeCategory;
+    const matchSearch =
+      p.name.toLowerCase().includes(q) ||
+      p.category.toLowerCase().includes(q);
+
+    return matchCategory && matchSearch;
+  });
+
+  renderAll();
+}
+
+// ==============================
+// Render Cards
+// ==============================
 function productCard(p) {
-  const out = p.stock <= 0 ? "out" : "";
-  const img = p.image || "assets/no-image.png";
+  const outOfStock = p.stock <= 0;
 
   return `
-    <div class="product-card ${out}">
-      <img class="product-img" src="${img}" alt="${p.name}" onerror="this.src='assets/no-image.png'">
-
-      <div class="p-name">${p.name}</div>
-      <div class="p-cat">${p.category}</div>
-
-      <div class="price-row">
-        <div class="sale-price">${money(p.salePrice)}</div>
-        ${p.mrp > 0 ? `<div class="mrp">${money(p.mrp)}</div>` : ""}
-        ${p.offPercent > 0 ? `<div class="off-badge">${p.offPercent}% OFF</div>` : ""}
+    <div class="card">
+      <div class="imgWrap">
+        <img src="${p.image || "assets/no-image.png"}" alt="${p.name}" onerror="this.src='assets/no-image.png'"/>
       </div>
 
-      <div class="stock">Stock: ${p.stock}</div>
+      <div class="cardBody">
+        <p class="pName">${p.name}</p>
+        <p class="pCat">${p.category}</p>
 
-      <button class="add-btn" ${p.stock <= 0 ? "disabled" : ""} data-id="${p.id}">
-        Add to Cart
-      </button>
+        <div class="priceRow">
+          <span class="sale">${money(p.sale)}</span>
+          ${p.mrp > 0 ? `<span class="mrp">${money(p.mrp)}</span>` : ""}
+          ${p.discount > 0 ? `<span class="offBadge">${p.discount}% OFF</span>` : ""}
+        </div>
+
+        <div class="stock">${outOfStock ? "❌ Out of Stock" : "Stock: " + p.stock}</div>
+
+        <button class="addBtn" ${outOfStock ? "disabled style='opacity:.5;cursor:not-allowed'" : ""} onclick="addToCart('${p.id}')">
+          ${outOfStock ? "Not Available" : "Add to Cart"}
+        </button>
+      </div>
     </div>
   `;
 }
 
-function renderProducts() {
-  productsGrid.innerHTML = FILTERED_PRODUCTS.map(productCard).join("");
-  productsGrid.querySelectorAll(".add-btn").forEach(btn => btn.addEventListener("click", () => addToCart(btn.dataset.id)));
-}
+function renderAll() {
+  // Offers = discount वाले products (Top)
+  const offers = [...filteredProducts]
+    .filter(p => p.discount > 0 && p.stock > 0)
+    .sort((a, b) => b.discount - a.discount)
+    .slice(0, 8);
 
-function renderOffers() {
-  const offers = ALL_PRODUCTS
-    .filter(p => p.offPercent > 0 && p.stock > 0)
-    .sort((a, b) => b.offPercent - a.offPercent)
-    .slice(0, 12);
+  offersGrid.innerHTML = offers.length
+    ? offers.map(productCard).join("")
+    : `<div style="color:#666">No offers today</div>`;
 
-  offersGrid.innerHTML = offers.map(productCard).join("");
-  offersGrid.querySelectorAll(".add-btn").forEach(btn => btn.addEventListener("click", () => addToCart(btn.dataset.id)));
-}
-
-function applyFilters() {
-  const q = searchInput.value.trim().toLowerCase();
-
-  FILTERED_PRODUCTS = ALL_PRODUCTS.filter(p => {
-    const matchCat = ACTIVE_CATEGORY === "All" ? true : p.category === ACTIVE_CATEGORY;
-    const matchSearch = p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
-    return matchCat && matchSearch;
+  // All Products (discount वाले पहले)
+  const sorted = [...filteredProducts].sort((a, b) => {
+    const aScore = (a.discount || 0) + (a.stock > 0 ? 5 : 0);
+    const bScore = (b.discount || 0) + (b.stock > 0 ? 5 : 0);
+    return bScore - aScore;
   });
 
-  renderProducts();
+  productsGrid.innerHTML = sorted.map(productCard).join("");
 }
 
-// CART LOGIC
+// ==============================
+// Cart Logic
+// ==============================
+function saveCart() {
+  localStorage.setItem("sultan_cart", JSON.stringify(cart));
+}
+
 function addToCart(id) {
-  const p = ALL_PRODUCTS.find(x => x.id === id);
+  const p = allProducts.find(x => x.id === id);
   if (!p || p.stock <= 0) return;
 
-  const existing = CART.find(x => x.id === id);
-  if (existing) existing.qty += 1;
-  else CART.push({ ...p, qty: 1 });
+  cart[id] = (cart[id] || 0) + 1;
+  saveCart();
+  updateCartUI();
+}
 
+function removeFromCart(id) {
+  delete cart[id];
   saveCart();
   updateCartUI();
 }
 
 function changeQty(id, delta) {
-  const item = CART.find(x => x.id === id);
-  if (!item) return;
-
-  item.qty += delta;
-  if (item.qty <= 0) CART = CART.filter(x => x.id !== id);
-
+  if (!cart[id]) return;
+  cart[id] += delta;
+  if (cart[id] <= 0) delete cart[id];
   saveCart();
   updateCartUI();
 }
 
-function clearCart() {
-  CART = [];
-  saveCart();
-  updateCartUI();
+function cartItemsList() {
+  return Object.keys(cart).map(id => {
+    const p = allProducts.find(x => x.id === id);
+    if (!p) return null;
+    return { ...p, qty: cart[id] };
+  }).filter(Boolean);
+}
+
+function getDeliveryCharge() {
+  return deliveryArea.value === FREE_AREA ? 0 : DELIVERY_CHARGE_OTHER;
+}
+
+function calcTotals() {
+  const items = cartItemsList();
+  const itemsTotal = items.reduce((sum, it) => sum + (it.sale * it.qty), 0);
+  const del = getDeliveryCharge();
+  const grand = itemsTotal + del;
+  return { itemsTotal, del, grand };
 }
 
 function updateCartUI() {
-  cartCount.textContent = cartCountTotal();
+  const items = cartItemsList();
 
-  if (CART.length === 0) {
-    cartItems.innerHTML = `<div style="color:#666;font-weight:900;">Cart is empty 😅</div>`;
+  // count
+  const count = items.reduce((sum, it) => sum + it.qty, 0);
+  cartCount.innerText = count;
+
+  // list
+  if (items.length === 0) {
+    cartItemsDiv.innerHTML = `<p style="color:#666">Cart is empty</p>`;
   } else {
-    cartItems.innerHTML = CART.map(i => `
-      <div class="cart-item">
-        <img src="${i.image || "assets/no-image.png"}" onerror="this.src='assets/no-image.png'">
-        <div>
-          <div class="ci-name">${i.name}</div>
-          <div class="ci-price">${money(i.salePrice)} × ${i.qty} = ${money(i.salePrice * i.qty)}</div>
-        </div>
-
-        <div class="qty-box">
-          <button class="qty-btn" data-act="minus" data-id="${i.id}">−</button>
-          <div class="qty">${i.qty}</div>
-          <button class="qty-btn" data-act="plus" data-id="${i.id}">+</button>
+    cartItemsDiv.innerHTML = items.map(it => `
+      <div class="cartItem">
+        <img src="${it.image || "assets/no-image.png"}" onerror="this.src='assets/no-image.png'" />
+        <div class="meta">
+          <b>${it.name}</b>
+          <div style="color:#666;font-size:12px">${money(it.sale)} × ${it.qty}</div>
+          <div class="qtyRow">
+            <button class="qtyBtn" onclick="changeQty('${it.id}', -1)">−</button>
+            <button class="qtyBtn" onclick="changeQty('${it.id}', 1)">+</button>
+            <button class="removeBtn" onclick="removeFromCart('${it.id}')">Remove</button>
+          </div>
         </div>
       </div>
     `).join("");
-
-    cartItems.querySelectorAll(".qty-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = btn.dataset.id;
-        const act = btn.dataset.act;
-        changeQty(id, act === "plus" ? 1 : -1);
-      });
-    });
   }
 
-  itemsTotalEl.textContent = money(cartItemsTotal());
-  deliveryChargeEl.textContent = money(deliveryCharge());
-  grandTotalEl.textContent = money(grandTotal());
-
-  upiIdText.textContent = UPI_ID;
-  upiBox.style.display = paymentMethod.value === "UPI Payment" ? "block" : "none";
+  // totals
+  const t = calcTotals();
+  itemsTotalEl.innerText = money(t.itemsTotal);
+  deliveryChargeEl.innerText = money(t.del);
+  grandTotalEl.innerText = money(t.grand);
 }
 
-// WHATSAPP MESSAGE
-function buildOrderMessage() {
-  const name = custName.value.trim();
-  const mobile = custMobile.value.trim();
-  const address = custAddress.value.trim();
+// ==============================
+// WhatsApp Order
+// ==============================
+function buildWhatsAppMessage() {
+  const items = cartItemsList();
+  const t = calcTotals();
 
-  if (!name || !mobile || !address) { alert("Please fill Name, Mobile, Address."); return null; }
-  if (CART.length === 0) { alert("Cart is empty."); return null; }
+  const name = normalize(custName.value);
+  const phone = normalize(custPhone.value);
+  const address = normalize(custAddress.value);
 
-  const area = deliveryArea.value === "bharatganj" ? "Bharatganj (Free)" : "Other Area (₹20)";
+  const area = deliveryArea.value;
   const day = deliveryDay.value;
   const slot = deliverySlot.value;
   const pay = paymentMethod.value;
 
-  let msg = `🛒 *${SHOP_NAME}*%0A✅ *New Order*%0A%0A`;
+  let msg = `🛒 *Sultan Mart Bharatganj*%0A`;
+  msg += `====================%0A`;
+
   msg += `👤 Name: ${encodeURIComponent(name)}%0A`;
-  msg += `📱 Mobile: ${encodeURIComponent(mobile)}%0A`;
+  msg += `📞 Mobile: ${encodeURIComponent(phone)}%0A`;
   msg += `🏠 Address: ${encodeURIComponent(address)}%0A%0A`;
 
-  msg += `📦 Delivery Area: ${encodeURIComponent(area)}%0A`;
+  msg += `🚚 Delivery: ${encodeURIComponent(area)}%0A`;
   msg += `📅 Day: ${encodeURIComponent(day)}%0A`;
-  msg += `⏰ Time Slot: ${encodeURIComponent(slot)}%0A`;
-  msg += `💳 Payment: ${encodeURIComponent(pay)}%0A%0A`;
+  msg += `⏰ Slot: ${encodeURIComponent(slot)}%0A`;
+  msg += `💳 Payment: ${encodeURIComponent(pay)}%0A`;
+  msg += `====================%0A%0A`;
 
-  msg += `🧾 *Items:*%0A`;
-  CART.forEach((i, idx) => {
-    msg += `${idx + 1}) ${encodeURIComponent(i.name)} - ${i.qty} × ${i.salePrice} = ${i.salePrice * i.qty}%0A`;
+  msg += `🧾 *Order Items*%0A`;
+
+  items.forEach((it, i) => {
+    msg += `${i + 1}. ${encodeURIComponent(it.name)}  (${it.qty} × ${Math.round(it.sale)})%0A`;
   });
 
-  msg += `%0AItems Total: ${cartItemsTotal()}%0A`;
-  msg += `Delivery: ${deliveryCharge()}%0A`;
-  msg += `Grand Total: ${grandTotal()}%0A%0A`;
-  msg += `🙏 Please confirm my order.`;
+  msg += `%0A====================%0A`;
+  msg += `Items Total: ${Math.round(t.itemsTotal)}%0A`;
+  msg += `Delivery: ${Math.round(t.del)}%0A`;
+  msg += `Grand Total: ${Math.round(t.grand)}%0A`;
+  msg += `====================%0A`;
+
+  msg += `%0A✅ Please confirm my order.`;
 
   return msg;
 }
 
-// EVENTS
-cartBtn.addEventListener("click", () => { cartModal.classList.remove("hidden"); updateCartUI(); });
-closeModal.addEventListener("click", () => cartModal.classList.add("hidden"));
-closeModalBtn.addEventListener("click", () => cartModal.classList.add("hidden"));
+function validateOrder() {
+  const items = cartItemsList();
+  const t = calcTotals();
 
-searchInput.addEventListener("input", applyFilters);
-deliveryArea.addEventListener("change", updateCartUI);
-paymentMethod.addEventListener("change", updateCartUI);
-
-copyUpiBtn.addEventListener("click", async () => {
-  try {
-    await navigator.clipboard.writeText(UPI_ID);
-    copyUpiBtn.textContent = "Copied!";
-    setTimeout(() => (copyUpiBtn.textContent = "Copy"), 1200);
-  } catch {
-    alert("Copy failed. UPI: " + UPI_ID);
-  }
-});
-
-whatsappBtn.addEventListener("click", () => {
-  const msg = buildOrderMessage();
-  if (!msg) return;
-  window.open(`https://wa.me/91${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
-});
-
-confirmBtn.addEventListener("click", () => {
-  if (CART.length === 0) return alert("Cart empty.");
-  clearCart();
-  alert("🎉 Your order confirmed! Thank you 😊");
-  cartModal.classList.add("hidden");
-});
-
-clearCartBtn.addEventListener("click", () => {
-  if (!confirm("Clear cart?")) return;
-  clearCart();
-});
-
-// LOAD PRODUCTS
-async function loadProducts() {
-  try {
-    const res = await fetch(SHEET_CSV_URL, { cache: "no-store" });
-    const text = await res.text();
-    const objs = csvToObjects(text);
-
-    ALL_PRODUCTS = objs.map(normalizeRow).filter(p => p.name);
-    renderCategories();
-    renderOffers();
-    applyFilters();
-    updateCartUI();
-  } catch (err) {
-    console.error(err);
-    productsGrid.innerHTML = `<div style="color:red;font-weight:900;">CSV Link Wrong / Sheet Not Public</div>`;
-  }
+  if (items.length === 0) return "Cart is empty!";
+  if (!custName.value.trim()) return "Please enter your name.";
+  if (!custPhone.value.trim()) return "Please enter mobile number.";
+  if (!custAddress.value.trim()) return "Please enter full address.";
+  if (t.itemsTotal < MIN_ORDER) return `Minimum order is ₹${MIN_ORDER}`;
+  return "";
 }
 
+// ==============================
+// Events
+// ==============================
+searchInput.addEventListener("input", applyFilters);
+
+cartBtn.onclick = () => cartModal.classList.remove("hidden");
+closeCart.onclick = () => cartModal.classList.add("hidden");
+
+deliveryArea.addEventListener("change", updateCartUI);
+
+copyUpiBtn.onclick = async () => {
+  try {
+    await navigator.clipboard.writeText(STORE_UPI);
+    alert("UPI ID Copied!");
+  } catch {
+    alert("Copy failed. Manually copy: " + STORE_UPI);
+  }
+};
+
+whatsappOrderBtn.onclick = () => {
+  const err = validateOrder();
+  if (err) {
+    alert(err);
+    return;
+  }
+
+  const msg = buildWhatsAppMessage();
+  const wa = `https://wa.me/91${STORE_WHATSAPP}?text=${msg}`;
+  window.open(wa, "_blank");
+
+  // ✅ Confirm = clear cart
+  cart = {};
+  saveCart();
+  updateCartUI();
+
+  alert("✅ Order Sent on WhatsApp!\nYour cart is cleared.");
+};
+
+// Make functions global
+window.addToCart = addToCart;
+window.removeFromCart = removeFromCart;
+window.changeQty = changeQty;
+
+// ==============================
+// Start
+// ==============================
 loadProducts();
 
-
-
+// Service Worker (optional)
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js").catch(() => {});
+}
