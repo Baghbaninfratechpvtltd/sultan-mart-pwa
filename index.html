@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,16 +7,16 @@
 
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#2a6dff" />
-
   <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
 
-  <!-- PREMIUM HEADER -->
+  <!-- HEADER -->
   <header class="topbar">
     <div class="topbar-left">
-      <img src="images/logo.png" class="logo" alt="Sultan Mart Logo" />
+      <!-- Logo -->
+      <img src="images/logo.png" class="logo" alt="Sultan Mart Logo" onerror="this.style.display='none'" />
 
       <div class="shopinfo">
         <div class="shopname">Sultan Mart Bharatganj</div>
@@ -37,12 +37,11 @@
     </div>
   </header>
 
-  <!-- MAIN -->
   <main class="mainwrap">
 
     <!-- OFFER BANNER -->
     <section class="offerbar">
-      <div class="offer-title">🔥 Today’s Offers</div>
+      <div class="offer-title">🔥 Today’s Offers (Trending Items)</div>
       <div class="offer-sub">
         Best MRP Deals • Fast Delivery • Order on WhatsApp
       </div>
@@ -55,15 +54,17 @@
     </section>
 
     <!-- LOADING -->
-    <div id="loadingText" class="loading">Loading...</div>
+    <div id="loadingText" class="loading">Loading products...</div>
 
     <!-- PRODUCTS -->
     <section id="productGrid" class="grid"></section>
+
   </main>
 
   <!-- CART MODAL -->
   <div id="cartModal" class="modal-overlay">
     <div class="modal">
+
       <div class="modal-head">
         <div class="modal-title">🛒 Your Cart</div>
         <button id="closeCartBtn" class="closebtn">✖</button>
@@ -120,6 +121,7 @@
           ⚠️ WhatsApp confirm करते ही cart clear हो जाएगा.
         </div>
       </div>
+
     </div>
   </div>
 
