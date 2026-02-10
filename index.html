@@ -1,127 +1,186 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sultan Mart Bharatganj</title>
 
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#2a6dff" />
   <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#111111" />
 </head>
 
 <body>
 
   <!-- HEADER -->
   <header class="topbar">
-    <div class="topbar-left">
-      <!-- Logo -->
-      <img src="images/logo.png" class="logo" alt="Sultan Mart Logo" onerror="this.style.display='none'" />
-
-      <div class="shopinfo">
-        <div class="shopname">Sultan Mart Bharatganj</div>
-        <div class="shopmeta">Online Grocery • 7 AM – 10 PM</div>
-        <div class="shopmeta2">
-          Minimum Order: ₹199 • Bharatganj Free Delivery
-        </div>
+    <div class="brand-row">
+      <img class="brand-logo" src="assets/logo.png" alt="Logo" />
+      <div>
+        <div class="brand-title">Sultan Mart Bharatganj</div>
+        <div class="brand-sub">Online Grocery • 7 AM – 10 PM</div>
+        <div class="brand-sub2">Minimum Order: ₹199 • Bharatganj Free Delivery</div>
       </div>
     </div>
 
-    <div class="topbar-right">
-      <a class="iconbtn" href="tel:9559868648" title="Call Now">📞</a>
-      <a class="iconbtn" href="https://wa.me/919559868648" target="_blank" title="WhatsApp">💬</a>
-
-      <button id="openCartBtn" class="cartbtn">
-        🛒 Cart <span id="cartCount" class="cartcount">0</span>
-      </button>
-    </div>
+    <button id="cartBtn" class="cart-btn">
+      🛒 Cart <span id="cartCount" class="cart-count">0</span>
+    </button>
   </header>
 
-  <main class="mainwrap">
+  <!-- MAIN -->
+  <main class="container">
 
-    <!-- OFFER BANNER -->
-    <section class="offerbar">
-      <div class="offer-title">🔥 Today’s Offers (Trending Items)</div>
-      <div class="offer-sub">
-        Best MRP Deals • Fast Delivery • Order on WhatsApp
+    <!-- DELIVERY INFO -->
+    <section class="info-grid">
+      <div class="info-card">
+        <div class="info-title">🚚 Delivery Info</div>
+        <div class="info-text">
+          <b>Free Delivery:</b> Bharatganj<br>
+          <b>Delivery Charge:</b> ₹20 (Other Areas)<br>
+          <b>Minimum Order:</b> ₹199
+        </div>
+      </div>
+
+      <div class="info-card">
+        <div class="info-title">⏰ Delivery Time Slots</div>
+        <div class="info-text">
+          <b>Morning:</b> 7 AM – 11 AM<br>
+          <b>Afternoon:</b> 12 PM – 4 PM<br>
+          <b>Evening:</b> 5 PM – 9 PM
+        </div>
       </div>
     </section>
 
-    <!-- SEARCH + CATEGORY -->
-    <section class="controls">
-      <input id="searchInput" class="search" type="text" placeholder="Search products..." />
-      <div id="categoryChips" class="chips"></div>
+    <!-- SEARCH -->
+    <section class="search-row">
+      <input id="searchInput" class="search-input" type="text" placeholder="Search products, category..." />
     </section>
 
-    <!-- LOADING -->
-    <div id="loadingText" class="loading">Loading products...</div>
+    <!-- CATEGORY -->
+    <section class="category-row" id="categoryRow"></section>
 
-    <!-- PRODUCTS -->
-    <section id="productGrid" class="grid"></section>
+    <!-- OFFERS -->
+    <section class="section-title">🔥 Today's Offers</section>
+    <section id="offersGrid" class="products-grid"></section>
+
+    <!-- ALL PRODUCTS -->
+    <section class="section-title">📦 All Products</section>
+    <section id="productsGrid" class="products-grid"></section>
 
   </main>
 
   <!-- CART MODAL -->
-  <div id="cartModal" class="modal-overlay">
-    <div class="modal">
+  <div id="cartModal" class="modal hidden">
+    <div class="modal-backdrop" id="closeModal"></div>
 
-      <div class="modal-head">
+    <div class="modal-box">
+      <div class="modal-header">
         <div class="modal-title">🛒 Your Cart</div>
-        <button id="closeCartBtn" class="closebtn">✖</button>
+        <button class="modal-close" id="closeModalBtn">✖</button>
       </div>
 
-      <div id="cartItemsList" class="cartlist"></div>
+      <div class="modal-body">
 
-      <div class="billbox">
-        <div class="billrow">
-          <span>Subtotal</span>
-          <b id="billSubtotal">₹0</b>
+        <div id="cartItems" class="cart-items"></div>
+
+        <div class="form-card">
+          <div class="form-title">👤 Customer Details</div>
+
+          <label>Full Name</label>
+          <input id="custName" type="text" placeholder="Enter your name" />
+
+          <label>Mobile Number</label>
+          <input id="custMobile" type="tel" placeholder="Enter mobile number" />
+
+          <label>Full Address</label>
+          <textarea id="custAddress" rows="3" placeholder="House No, Street, Landmark, Area..."></textarea>
         </div>
 
-        <div class="billrow">
-          <span>Delivery</span>
-          <b id="billDelivery">Free</b>
+        <div class="form-card">
+          <div class="form-title">📦 Delivery Settings</div>
+
+          <label>Delivery Area</label>
+          <select id="deliveryArea">
+            <option value="bharatganj">Bharatganj (Free)</option>
+            <option value="other">Other Area (₹20)</option>
+          </select>
+
+          <label>Delivery Day</label>
+          <select id="deliveryDay">
+            <option value="Today">Today</option>
+            <option value="Tomorrow">Tomorrow</option>
+          </select>
+
+          <label>Delivery Time Slot</label>
+          <select id="deliverySlot">
+            <option value="Morning (7 AM - 11 AM)">Morning (7 AM - 11 AM)</option>
+            <option value="Afternoon (12 PM - 4 PM)">Afternoon (12 PM - 4 PM)</option>
+            <option value="Evening (5 PM - 9 PM)">Evening (5 PM - 9 PM)</option>
+          </select>
         </div>
 
-        <div class="billrow total">
-          <span>Grand Total</span>
-          <b id="billGrand">₹0</b>
-        </div>
-      </div>
+        <div class="form-card">
+          <div class="form-title">💳 Payment</div>
 
-      <div class="formbox">
-        <div class="formtitle">📦 Delivery Details</div>
+          <label>Select Payment</label>
+          <select id="paymentMethod">
+            <option value="Cash on Delivery">Cash on Delivery</option>
+            <option value="UPI Payment">UPI Payment</option>
+          </select>
 
-        <input id="custName" class="input" type="text" placeholder="Customer Name" />
-        <input id="custMobile" class="input" type="tel" placeholder="Mobile Number" />
-        <textarea id="custAddress" class="input" rows="2" placeholder="Full Address"></textarea>
-
-        <div class="row2">
-          <select id="deliveryArea" class="input"></select>
-          <select id="deliveryDay" class="input"></select>
-        </div>
-
-        <select id="deliverySlot" class="input"></select>
-        <select id="paymentMethod" class="input"></select>
-
-        <div class="upiBox">
-          <div>
-            <div class="upiLabel">UPI ID</div>
-            <div id="upiText" class="upiText">9559868648@ptyes</div>
+          <div class="upi-box" id="upiBox">
+            <div class="upi-row">
+              <div>
+                <div class="upi-label">UPI ID</div>
+                <div class="upi-id" id="upiIdText">9559868648@ptyes</div>
+              </div>
+              <button id="copyUpiBtn" class="copy-btn">Copy</button>
+            </div>
+            <div class="upi-hint">Pay on UPI & send screenshot on WhatsApp.</div>
           </div>
-          <button id="copyUpiBtn" class="copybtn">Copy</button>
         </div>
 
-        <div class="btnrow">
-          <a id="callLink" class="callbtn" href="tel:9559868648">📞 Call</a>
-          <button id="confirmOrderBtn" class="confirmbtn">💬 Confirm on WhatsApp</button>
+        <div class="bill-card">
+          <div class="bill-title">🧾 Bill Summary</div>
+
+          <div class="bill-row">
+            <span>Items Total</span>
+            <span id="itemsTotal">₹0</span>
+          </div>
+
+          <div class="bill-row">
+            <span>Delivery Charge</span>
+            <span id="deliveryCharge">₹0</span>
+          </div>
+
+          <div class="bill-row bill-final">
+            <span>Total Payable</span>
+            <span id="grandTotal">₹0</span>
+          </div>
+        </div>
+
+        <div class="actions">
+          <a class="call-btn" href="tel:9559868648">📞 Call Store</a>
+
+          <button id="whatsappBtn" class="wa-btn">
+            ✅ Confirm Order on WhatsApp
+          </button>
+
+          <button id="confirmBtn" class="confirm-btn">
+            🎉 Order Confirmed
+          </button>
+
+          <button id="clearCartBtn" class="clear-btn">
+            🗑 Clear Cart
+          </button>
         </div>
 
         <div class="note">
-          ⚠️ WhatsApp confirm करते ही cart clear हो जाएगा.
+          ⚡ Order Confirmed button दबाते ही cart clear हो जाएगा।
         </div>
-      </div>
 
+      </div>
     </div>
   </div>
 
@@ -129,7 +188,7 @@
 
   <script>
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./service-worker.js");
+      navigator.serviceWorker.register("./sw.js");
     }
   </script>
 
