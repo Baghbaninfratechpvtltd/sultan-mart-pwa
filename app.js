@@ -1,5 +1,5 @@
 // =======================
-// SETTINGS (CHANGE ONLY IF YOU WANT)
+// SETTINGS
 // =======================
 const SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0DkCrsf4_AD96Kv9yaYNbMUUHpQtz59zkXH9f1T9mPI2pXB-OcXTR0pdO-9sgyarYD4pEp8nolt5R/pub?output=csv";
@@ -7,6 +7,10 @@ const SHEET_CSV_URL =
 const SHOP_PHONE = "9559868648";
 const SHOP_WHATSAPP = "9559868648";
 const MIN_ORDER = 199;
+
+// Delivery
+const FREE_AREA = "Bharatganj";
+const PAID_DELIVERY_CHARGE = 20;
 
 // =======================
 // DOM
@@ -36,7 +40,11 @@ const callBtn = document.getElementById("callBtn");
 let allProducts = [];
 let selectedCategory = "All";
 let searchQuery = "";
+
 let cart = JSON.parse(localStorage.getItem("cart_sultanmart") || "[]");
+
+// Customer form data
+let customer = JSON.parse(localStorage.getItem("customer_sultanmart") || "{}");
 
 // =======================
 // HELPERS
@@ -71,14 +79,31 @@ function saveCart() {
   localStorage.setItem("cart_sultanmart", JSON.stringify(cart));
 }
 
+function saveCustomer() {
+  localStorage.setItem("customer_sultanmart", JSON.stringify(customer));
+}
+
 function cartCount() {
   return cart.reduce((sum, item) => sum + item.qty, 0);
 }
 
-function cartTotal() {
+function cartSubTotal() {
   return cart.reduce((sum, item) => sum + item.qty * item.salePrice, 0);
 }
 
+function getDeliveryCharge() {
+  if (!customer.area) return 0;
+  if (customer.area === "Bharatganj") return 0;
+  return PAID_DELIVERY_CHARGE;
+}
+
+function cartGrandTotal() {
+  return cartSubTotal() + getDeliveryCharge();
+}
+
+// =======================
+// MODAL OPEN/CLOSE
+// =======================
 function openCart() {
   cartBackdrop.style.display = "block";
   cartModal.style.display = "block";
@@ -90,10 +115,14 @@ function closeCart() {
   cartModal.style.display = "none";
 }
 
+// =======================
+// CART FUNCTIONS
+// =======================
 function addToCart(product) {
   const found = cart.find(i => i.id === product.id);
   if (found) found.qty += 1;
   else cart.push({ ...product, qty: 1 });
+
   saveCart();
   updateCartUI();
 }
@@ -101,8 +130,10 @@ function addToCart(product) {
 function changeQty(id, delta) {
   const item = cart.find(i => i.id === id);
   if (!item) return;
+
   item.qty += delta;
   if (item.qty <= 0) cart = cart.filter(i => i.id !== id);
+
   saveCart();
   updateCartUI();
   renderCart();
@@ -119,25 +150,8 @@ function updateCartUI() {
   cartCountEl.textContent = cartCount();
 }
 
-function buildWhatsAppMessage() {
-  let msg = `🛒 *Sultan Mart Bharatganj*\n\n`;
-  msg += `📌 *New Order*\n\n`;
-
-  cart.forEach((item, idx) => {
-    msg += `${idx + 1}. ${item.name}  x${item.qty}  = ₹${item.qty * item.salePrice}\n`;
-  });
-
-  msg += `\n------------------------\n`;
-  msg += `💰 *Total:* ₹${cartTotal()}\n`;
-  msg += `📦 *Minimum Order:* ₹${MIN_ORDER}\n`;
-  msg += `------------------------\n\n`;
-  msg += `✅ Please confirm my order.\n`;
-
-  return msg;
-}
-
 // =======================
-// RENDER PRODUCTS
+// PRODUCTS RENDER
 // =======================
 function productCard(p) {
   const mrp = toNumber(p.MRP);
@@ -199,46 +213,136 @@ function filteredProducts() {
 function renderProducts() {
   const list = filteredProducts();
 
-  // Offers = discount > 0
+  // Offers first
   const offers = list.filter(p => {
     const mrp = toNumber(p.MRP);
     const sale = toNumber(p["Sale Price"]);
     return getDiscountPercent(mrp, sale) > 0;
   });
 
-  // All Products
   offersGrid.innerHTML = offers.map(productCard).join("") || `<div style="opacity:.7">No offers available</div>`;
   productsGrid.innerHTML = list.map(productCard).join("") || `<div style="opacity:.7">No products found</div>`;
 }
 
 // =======================
-// CART RENDER
+// CART RENDER (FULL DETAILS)
 // =======================
 function renderCart() {
   if (cart.length === 0) {
-    cartItemsEl.innerHTML = `<div style="opacity:.7; padding: 10px 0;">Cart is empty</div>`;
+    cartItemsEl.innerHTML = `
+      <div style="opacity:.7; padding: 10px 0;">Cart is empty</div>
+    `;
     cartTotalEl.textContent = "0";
     return;
   }
 
-  cartItemsEl.innerHTML = cart.map(item => `
-    <div class="cart-item">
-      <div>
-        <div class="cart-item-name">${item.name}</div>
-        <div style="opacity:.7; font-size:12px;">₹${item.salePrice} each</div>
-      </div>
+  // Customer form inside cart
+  cartItemsEl.innerHTML = `
+    <div style="padding-bottom:12px;">
+      <div style="font-weight:900; margin-bottom:8px;">👤 Customer Details</div>
 
-      <div class="qty-controls">
-        <button class="qty-btn" onclick="window.__changeQty('${item.id}', -1)">-</button>
-        <div class="qty">${item.qty}</div>
-        <button class="qty-btn" onclick="window.__changeQty('${item.id}', 1)">+</button>
-      </div>
+      <div style="display:grid; gap:8px;">
+        <input id="custName" placeholder="Customer Name" value="${customer.name || ""}" style="padding:12px;border-radius:14px;border:1px solid #ddd;width:100%;" />
+        <input id="custMobile" placeholder="Mobile Number" value="${customer.mobile || ""}" style="padding:12px;border-radius:14px;border:1px solid #ddd;width:100%;" />
+        <input id="custAddress" placeholder="Full Address" value="${customer.address || ""}" style="padding:12px;border-radius:14px;border:1px solid #ddd;width:100%;" />
 
-      <div class="cart-item-price">₹${item.qty * item.salePrice}</div>
+        <select id="custArea" style="padding:12px;border-radius:14px;border:1px solid #ddd;width:100%;">
+          <option value="">Select Area</option>
+          <option value="Bharatganj" ${customer.area === "Bharatganj" ? "selected" : ""}>Bharatganj (Free Delivery)</option>
+          <option value="Other" ${customer.area === "Other" ? "selected" : ""}>Other Area (₹20 Delivery)</option>
+        </select>
+
+        <select id="custTime" style="padding:12px;border-radius:14px;border:1px solid #ddd;width:100%;">
+          <option value="">Select Delivery Time</option>
+          <option value="Morning" ${customer.time === "Morning" ? "selected" : ""}>Morning (7 AM – 11 AM)</option>
+          <option value="Afternoon" ${customer.time === "Afternoon" ? "selected" : ""}>Afternoon (12 PM – 4 PM)</option>
+          <option value="Evening" ${customer.time === "Evening" ? "selected" : ""}>Evening (5 PM – 9 PM)</option>
+        </select>
+
+        <textarea id="custNote" placeholder="Any Note (optional)" style="padding:12px;border-radius:14px;border:1px solid #ddd;width:100%;min-height:70px;">${customer.note || ""}</textarea>
+      </div>
     </div>
-  `).join("");
 
-  cartTotalEl.textContent = cartTotal();
+    <div style="font-weight:900; margin: 8px 0;">🛒 Items</div>
+
+    ${cart.map(item => `
+      <div class="cart-item">
+        <div>
+          <div class="cart-item-name">${item.name}</div>
+          <div style="opacity:.7; font-size:12px;">₹${item.salePrice} each</div>
+        </div>
+
+        <div class="qty-controls">
+          <button class="qty-btn" onclick="window.__changeQty('${item.id}', -1)">-</button>
+          <div class="qty">${item.qty}</div>
+          <button class="qty-btn" onclick="window.__changeQty('${item.id}', 1)">+</button>
+        </div>
+
+        <div class="cart-item-price">₹${item.qty * item.salePrice}</div>
+      </div>
+    `).join("")}
+  `;
+
+  // Save customer live
+  setTimeout(() => {
+    const nameEl = document.getElementById("custName");
+    const mobEl = document.getElementById("custMobile");
+    const addEl = document.getElementById("custAddress");
+    const areaEl = document.getElementById("custArea");
+    const timeEl = document.getElementById("custTime");
+    const noteEl = document.getElementById("custNote");
+
+    function update() {
+      customer.name = nameEl.value.trim();
+      customer.mobile = mobEl.value.trim();
+      customer.address = addEl.value.trim();
+      customer.area = areaEl.value;
+      customer.time = timeEl.value;
+      customer.note = noteEl.value.trim();
+      saveCustomer();
+
+      cartTotalEl.textContent = cartGrandTotal();
+    }
+
+    [nameEl, mobEl, addEl, areaEl, timeEl, noteEl].forEach(el => {
+      el.addEventListener("input", update);
+      el.addEventListener("change", update);
+    });
+
+    cartTotalEl.textContent = cartGrandTotal();
+  }, 50);
+}
+
+// =======================
+// WHATSAPP MESSAGE
+// =======================
+function buildWhatsAppMessage() {
+  let msg = `🛒 *Sultan Mart Bharatganj*\n\n`;
+  msg += `📌 *New Order*\n\n`;
+
+  msg += `👤 Name: ${customer.name || "-"}\n`;
+  msg += `📞 Mobile: ${customer.mobile || "-"}\n`;
+  msg += `🏠 Address: ${customer.address || "-"}\n`;
+  msg += `📍 Area: ${customer.area || "-"}\n`;
+  msg += `⏰ Delivery Time: ${customer.time || "-"}\n`;
+  msg += `📝 Note: ${customer.note || "-"}\n\n`;
+
+  msg += `🛍️ *Items:*\n`;
+
+  cart.forEach((item, idx) => {
+    msg += `${idx + 1}. ${item.name}  x${item.qty}  = ₹${item.qty * item.salePrice}\n`;
+  });
+
+  msg += `\n------------------------\n`;
+  msg += `🧾 Subtotal: ₹${cartSubTotal()}\n`;
+  msg += `🚚 Delivery Charge: ₹${getDeliveryCharge()}\n`;
+  msg += `💰 *Grand Total:* ₹${cartGrandTotal()}\n`;
+  msg += `📦 Minimum Order: ₹${MIN_ORDER}\n`;
+  msg += `------------------------\n\n`;
+
+  msg += `✅ Please confirm my order.\n`;
+
+  return msg;
 }
 
 // =======================
@@ -251,7 +355,6 @@ async function loadProducts() {
 
     const raw = parseCSV(text);
 
-    // Clean + map
     allProducts = raw.map(r => ({
       ID: r.ID || r.Id || r.id,
       Name: r.Name || r.name,
@@ -275,7 +378,7 @@ async function loadProducts() {
 }
 
 // =======================
-// GLOBAL FUNCTIONS
+// GLOBAL
 // =======================
 window.__addToCart = function(id){
   const p = allProducts.find(x => String(x.ID) === String(id));
@@ -312,7 +415,7 @@ searchInput.addEventListener("input", (e) => {
 whatsappBtn.addEventListener("click", () => {
   if (cart.length === 0) return alert("Cart is empty!");
 
-  if (cartTotal() < MIN_ORDER) {
+  if (cartGrandTotal() < MIN_ORDER) {
     return alert(`Minimum order ₹${MIN_ORDER} required!`);
   }
 
@@ -326,7 +429,6 @@ confirmBtn.addEventListener("click", () => {
 
   alert("✅ Your order is confirmed! Thank you 😊");
 
-  // Customer ko WhatsApp par final message open
   const confirmMsg = `✅ *Your order is confirmed!* \n\nThank you for shopping from *Sultan Mart Bharatganj* 😊`;
   const url = `https://wa.me/91${SHOP_WHATSAPP}?text=${encodeURIComponent(confirmMsg)}`;
   window.open(url, "_blank");
@@ -339,7 +441,7 @@ clearCartBtn.addEventListener("click", () => {
   clearCart();
 });
 
-// Call button
+// Call
 callBtn.href = `tel:${SHOP_PHONE}`;
 
 // =======================
