@@ -1,157 +1,121 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Sultan Mart Bharatganj</title>
-  <meta name="theme-color" content="#0ea5e9" />
-  <meta name="description" content="Sultan Mart Bharatganj - Online Grocery Store" />
 
-  <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css"/>
 
+  <!-- PWA -->
+  <meta name="theme-color" content="#111111">
 </head>
+
 <body>
 
   <!-- HEADER -->
-  <header>
-    <div class="header-wrap">
-
-      <div class="brand-left">
-        <div class="logo">
-          <!-- 🔥 LOGO FILE PATH -->
-          <img src="assets/logo.png" alt="Sultan Mart Logo" id="siteLogo">
-        </div>
-
-        <div class="brand-text">
-          <h1>Sultan Mart Bharatganj</h1>
-          <p>Online Grocery • 7 AM – 10 PM</p>
-        </div>
+  <header class="topbar">
+    <div class="brand">
+      <img class="logo" src="assets/logo.png" alt="Sultan Mart Logo" onerror="this.src='assets/fallback.png'"/>
+      <div class="brandText">
+        <h1>Sultan Mart Bharatganj</h1>
+        <p>Online Grocery • 7 AM – 10 PM</p>
+        <p class="small">Minimum Order: ₹199 • Bharatganj Free Delivery</p>
       </div>
+    </div>
 
-      <div class="header-actions">
-        <button class="icon-btn" onclick="openCart()">
-          🛒 Cart <b id="cartCount">0</b>
-        </button>
-      </div>
-
+    <div class="topActions">
+      <a class="btn btn-call" href="tel:9559868648">📞 Call</a>
+      <button id="cartBtn" class="btn btn-cart">🛒 Cart <span id="cartCount">0</span></button>
     </div>
   </header>
 
-  <!-- TOP INFO -->
-  <div class="top-info">
-    <div class="chip">Minimum Order: <strong>₹199</strong></div>
-    <div class="chip">Delivery: <strong class="green">Bharatganj Free</strong></div>
-    <div class="chip">Call / WhatsApp: <strong>9559868648</strong></div>
-  </div>
-
-  <!-- CONTROLS -->
-  <div class="controls">
-    <div class="searchbar">
-      <input type="text" id="searchInput" placeholder="Search products..." />
-      <button onclick="loadProducts()">Refresh</button>
+  <!-- TOP INFO CARDS -->
+  <section class="infoGrid">
+    <div class="infoCard">
+      <h3>🚚 Delivery Info</h3>
+      <p>Free: Bharatganj</p>
+      <p>Charge: ₹20 (Other Areas)</p>
+      <p>Minimum Order: ₹199</p>
     </div>
 
-    <div class="category-row" id="categoryRow"></div>
-  </div>
+    <div class="infoCard">
+      <h3>⏰ Delivery Time Slots</h3>
+      <p>Morning: 7 AM – 11 AM</p>
+      <p>Afternoon: 12 PM – 4 PM</p>
+      <p>Evening: 5 PM – 9 PM</p>
+    </div>
+
+    <div class="infoCard">
+      <h3>💳 UPI Payment</h3>
+      <div class="upiRow">
+        <input id="upiId" value="9559868648@paytm" readonly />
+        <button id="copyUpi" class="btn btn-small">Copy</button>
+      </div>
+      <p class="small">UPI pay करके screenshot WhatsApp पर भेजें.</p>
+    </div>
+  </section>
+
+  <!-- SEARCH -->
+  <section class="searchWrap">
+    <input id="searchInput" type="text" placeholder="Search products, category..." />
+  </section>
+
+  <!-- CATEGORY CHIPS -->
+  <section class="chips" id="chips"></section>
 
   <!-- TRENDING / OFFERS -->
-  <div class="section">
-    <h2>🔥 Trending / Offers</h2>
-    <div class="grid" id="offerGrid"></div>
-  </div>
+  <section class="section">
+    <h2>🔥 Trending / Offers (Top)</h2>
+    <div class="grid" id="offersGrid"></div>
+  </section>
 
   <!-- ALL PRODUCTS -->
-  <div class="section">
+  <section class="section">
     <h2>🛍️ All Products</h2>
-    <div class="grid" id="productGrid"></div>
-  </div>
-
-  <div class="footer-note">
-    © Sultan Mart Bharatganj • Powered by GitHub + Vercel • Free Forever
-  </div>
-
-  <!-- FLOATING CART BUTTON -->
-  <button class="fab-cart" onclick="openCart()">
-    🛒 Your Cart <span id="fabCount">0</span>
-  </button>
+    <div class="grid" id="allGrid"></div>
+  </section>
 
   <!-- CART MODAL -->
-  <div class="modal" id="cartModal">
-    <div class="modal-box">
-
-      <div class="modal-head">
+  <div id="cartModal" class="modal hidden">
+    <div class="modalBox">
+      <div class="modalHeader">
         <h3>🛒 Your Cart</h3>
-        <button class="close-btn" onclick="closeCart()">✖ Close</button>
+        <button id="closeCart" class="xBtn">✖</button>
       </div>
 
-      <div class="modal-body">
+      <div id="cartItems" class="cartItems"></div>
 
-        <div id="cartItems"></div>
+      <div class="billBox">
+        <h4>🧾 Bill Summary</h4>
+        <div class="billRow"><span>Items Total</span><span id="billItems">₹0</span></div>
+        <div class="billRow"><span>Delivery</span><span id="billDelivery">₹0</span></div>
+        <div class="billRow total"><span>Total</span><span id="billTotal">₹0</span></div>
+        <p class="small">*Delivery ₹0 for Bharatganj, ₹20 other areas</p>
+      </div>
 
-        <!-- BILL -->
-        <div class="bill">
-          <h4>🧾 Bill Summary</h4>
+      <div class="payBox">
+        <h4>💳 Payment Method</h4>
+        <label class="radio">
+          <input type="radio" name="pay" value="cod" checked />
+          <span>Cash on Delivery (COD)</span>
+        </label>
 
-          <div class="bill-row">
-            <span class="muted">Items Total</span>
-            <span id="billTotal">₹0</span>
-          </div>
+        <label class="radio">
+          <input type="radio" name="pay" value="upi" />
+          <span>UPI (Pay Now)</span>
+        </label>
 
-          <div class="bill-row">
-            <span class="muted">Delivery Charge</span>
-            <span id="deliveryCharge">₹0</span>
-          </div>
-
-          <div class="bill-row">
-            <span class="muted">Discount Saved</span>
-            <span id="discountSaved">₹0</span>
-          </div>
-
-          <div class="bill-total">
-            <span>Grand Total</span>
-            <span id="grandTotal">₹0</span>
-          </div>
+        <div id="upiLinkBox" class="upiLinkBox hidden">
+          <button id="openUpiLink" class="btn btn-upi">Open UPI Payment Link</button>
+          <p class="small">UPI app खुलेगा → Pay करें → screenshot WhatsApp पर भेजें.</p>
         </div>
+      </div>
 
-        <!-- FORM -->
-        <div class="form">
-
-          <input type="text" id="custName" placeholder="Customer Name" />
-          <input type="text" id="custPhone" placeholder="Mobile Number" />
-          <textarea id="custAddress" placeholder="Full Address (House, Street, Area)"></textarea>
-
-          <select id="deliveryArea">
-            <option value="free">Bharatganj (Free Delivery)</option>
-            <option value="paid">Outside Bharatganj (Paid Delivery)</option>
-          </select>
-
-          <select id="deliveryTime">
-            <option value="Morning">Morning (7 AM - 12 PM)</option>
-            <option value="Afternoon">Afternoon (12 PM - 5 PM)</option>
-            <option value="Evening">Evening (5 PM - 10 PM)</option>
-          </select>
-
-          <select id="paymentMethod">
-            <option value="">Select Payment Method</option>
-            <option value="cod">Cash on Delivery</option>
-            <option value="upi">UPI</option>
-          </select>
-
-          <div class="upi-box" id="upiBox">
-            UPI ID: <b>9559868648@ptyes</b><br/>
-            👉 <a id="upiLink" href="#" target="_blank">Pay Now (UPI Link)</a>
-          </div>
-
-          <div class="btn-row">
-            <button class="btn whatsapp" onclick="sendWhatsApp()">📩 WhatsApp Order</button>
-            <button class="btn call" onclick="callNow()">📞 Call Now</button>
-            <button class="btn clear" onclick="clearCart()">🧹 Clear Cart</button>
-          </div>
-
-        </div>
-
+      <div class="cartActions">
+        <a class="btn btn-call" href="tel:9559868648">📞 Call</a>
+        <button id="whatsappBtn" class="btn btn-wa">💬 Confirm on WhatsApp</button>
+        <button id="clearCartBtn" class="btn btn-danger">🗑️ Clear Cart</button>
       </div>
     </div>
   </div>
