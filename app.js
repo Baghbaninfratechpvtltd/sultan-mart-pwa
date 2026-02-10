@@ -1,12 +1,10 @@
 // ==========================
-// Sultan Mart PWA - FULL APP
+// Sultan Mart PWA - FIXED FINAL
 // ==========================
 
-// Google Sheet CSV Link (YOUR LINK)
 const SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0DkCrsf4_AD96Kv9yaYNbMUUHpQtz59zkXH9f1T9mPI2pXB-OcXTR0pdO-9sgyarYD4pEp8nolt5R/pub?output=csv";
 
-// Store Settings
 const STORE_PHONE = "9559868648";
 const STORE_UPI = "9559868648@paytm";
 
@@ -57,7 +55,7 @@ let filteredProducts = [];
 let selectedCategory = "All";
 
 // Cart
-let cart = JSON.parse(localStorage.getItem("cart_v1") || "{}");
+let cart = JSON.parse(localStorage.getItem("cart_v2") || "{}");
 
 // ==========================
 // Helpers
@@ -65,12 +63,10 @@ let cart = JSON.parse(localStorage.getItem("cart_v1") || "{}");
 function money(n) {
   return "₹" + Math.round(Number(n || 0));
 }
-
 function safeNum(v) {
   const n = Number(v);
   return isNaN(n) ? 0 : n;
 }
-
 function getDiscountPercent(mrp, sale) {
   mrp = safeNum(mrp);
   sale = safeNum(sale);
@@ -78,13 +74,17 @@ function getDiscountPercent(mrp, sale) {
   const p = Math.round(((mrp - sale) / mrp) * 100);
   return p > 0 ? p : 0;
 }
-
-function getDeliveryCharge() {
-  const area = deliveryArea.value;
-  if (area === "free") return 0;
-  return 20; // FIXED Outside charge
+function saveCart() {
+  localStorage.setItem("cart_v2", JSON.stringify(cart));
 }
-
+function getCartCount() {
+  let c = 0;
+  for (const id in cart) c += cart[id];
+  return c;
+}
+function getDeliveryCharge() {
+  return deliveryArea.value === "outside" ? 20 : 0;
+}
 function calcSubtotal() {
   let sum = 0;
   for (const id in cart) {
@@ -95,21 +95,8 @@ function calcSubtotal() {
   }
   return sum;
 }
-
 function calcTotal() {
-  const subtotal = calcSubtotal();
-  const delivery = getDeliveryCharge();
-  return subtotal + delivery;
-}
-
-function saveCart() {
-  localStorage.setItem("cart_v1", JSON.stringify(cart));
-}
-
-function getCartCount() {
-  let c = 0;
-  for (const id in cart) c += cart[id];
-  return c;
+  return calcSubtotal() + getDeliveryCharge();
 }
 
 // ==========================
@@ -122,7 +109,6 @@ async function fetchProducts() {
   const text = await res.text();
   const rows = parseCSV(text);
 
-  // Columns: ID, Name, Category, MRP, Discount, Sale Price, Stock, Image
   const products = rows
     .filter((r) => r.length >= 3)
     .slice(1)
@@ -151,7 +137,6 @@ async function fetchProducts() {
   filteredProducts = [...products];
 }
 
-// Simple CSV parser
 function parseCSV(text) {
   const rows = [];
   let row = [];
@@ -187,7 +172,7 @@ function parseCSV(text) {
 }
 
 // ==========================
-// UI Render
+// UI
 // ==========================
 function buildCategories() {
   const cats = ["All", ...new Set(allProducts.map((p) => p.category))];
@@ -221,19 +206,17 @@ function applyFilters() {
 }
 
 function renderProducts() {
-  // Offers: discount > 0
   const offers = filteredProducts
     .filter((p) => p.discountPercent > 0)
     .sort((a, b) => b.discountPercent - a.discountPercent);
 
-  // All products
-  const all = filteredProducts.sort((a, b) => a.name.localeCompare(b.name));
+  const all = [...filteredProducts].sort((a, b) => a.name.localeCompare(b.name));
 
   offersGrid.innerHTML = "";
   productsGrid.innerHTML = "";
 
   if (offers.length === 0) {
-    offersGrid.innerHTML = `<div style="color:#6b7280;font-size:13px;padding:8px;">No offers found.</div>`;
+    offersGrid.innerHTML = `<div style="color:#64748b;font-size:13px;padding:8px;">No offers found.</div>`;
   } else {
     offers.forEach((p) => offersGrid.appendChild(productCard(p)));
   }
@@ -289,9 +272,7 @@ function productCard(p) {
   btn.innerText = p.stock > 0 ? "Add to Cart" : "Out of Stock";
   btn.disabled = p.stock <= 0;
 
-  btn.onclick = () => {
-    addToCart(p.id);
-  };
+  btn.onclick = () => addToCart(p.id);
 
   card.appendChild(img);
   card.appendChild(name);
@@ -304,7 +285,7 @@ function productCard(p) {
 }
 
 // ==========================
-// Cart Logic
+// Cart
 // ==========================
 function addToCart(id) {
   cart[id] = (cart[id] || 0) + 1;
@@ -343,11 +324,10 @@ function closeCart() {
 
 function renderCart() {
   cartItemsEl.innerHTML = "";
-
   const ids = Object.keys(cart);
 
   if (ids.length === 0) {
-    cartItemsEl.innerHTML = `<div style="padding:14px;color:#6b7280;">Cart is empty.</div>`;
+    cartItemsEl.innerHTML = `<div style="padding:14px;color:#64748b;">Cart is empty.</div>`;
     updateBill();
     return;
   }
@@ -409,30 +389,29 @@ function updateBill() {
   billDelivery.innerText = money(delivery);
   billTotal.innerText = money(total);
 
-  // Update UPI link if UPI selected
   updateUpiLink();
 }
 
 // ==========================
-// UPI Link Auto Amount
+// UPI Auto Amount (WORKING)
 // ==========================
 function updateUpiLink() {
   const total = calcTotal();
-  const note = "Sultan Mart Order";
 
+  // IMPORTANT: UPI link works on MOBILE only (UPI apps)
   const upiUrl =
     `upi://pay?pa=${encodeURIComponent(STORE_UPI)}` +
     `&pn=${encodeURIComponent("Sultan Mart")}` +
     `&am=${encodeURIComponent(Math.round(total))}` +
     `&cu=INR` +
-    `&tn=${encodeURIComponent(note)}`;
+    `&tn=${encodeURIComponent("Sultan Mart Order")}`;
 
   upiPayLink.href = upiUrl;
   upiPayLink.innerText = `💸 Pay Now (${money(total)})`;
 }
 
 // ==========================
-// WhatsApp Confirm
+// WhatsApp
 // ==========================
 function makeOrderMessage() {
   const ids = Object.keys(cart);
@@ -487,7 +466,7 @@ function confirmOnWhatsApp() {
 }
 
 // ==========================
-// Location Share
+// Location Share (WORKING)
 // ==========================
 function shareLocation() {
   if (!navigator.geolocation) {
@@ -495,7 +474,8 @@ function shareLocation() {
     return;
   }
 
-  locationText.innerText = "Location: Fetching...";
+  shareLocationBtn.innerText = "📍 Getting location...";
+  shareLocationBtn.disabled = true;
 
   navigator.geolocation.getCurrentPosition(
     (pos) => {
@@ -504,11 +484,17 @@ function shareLocation() {
 
       customerLocation = `https://maps.google.com/?q=${lat},${lon}`;
       locationText.innerText = "Location: Shared ✅";
+      shareLocationBtn.innerText = "📍 Location Shared";
+      shareLocationBtn.disabled = false;
     },
     () => {
+      customerLocation = "";
       locationText.innerText = "Location: Not shared";
+      shareLocationBtn.innerText = "📍 Share Location";
+      shareLocationBtn.disabled = false;
       alert("Location permission denied!");
-    }
+    },
+    { enableHighAccuracy: true, timeout: 15000 }
   );
 }
 
@@ -517,6 +503,7 @@ function shareLocation() {
 // ==========================
 openCartBtn.onclick = openCart;
 closeCartBtn.onclick = closeCart;
+
 cartModal.onclick = (e) => {
   if (e.target === cartModal) closeCart();
 };
@@ -524,6 +511,7 @@ cartModal.onclick = (e) => {
 searchInput.addEventListener("input", applyFilters);
 
 deliveryArea.addEventListener("change", updateBill);
+
 paymentMethod.addEventListener("change", () => {
   if (paymentMethod.value === "upi") {
     upiPayBox.style.display = "block";
