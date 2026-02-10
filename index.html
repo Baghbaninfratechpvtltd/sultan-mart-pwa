@@ -1,13 +1,9 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sultan Mart Bharatganj</title>
-
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#0b0b0b" />
-
   <link rel="stylesheet" href="style.css" />
 </head>
 
@@ -15,152 +11,86 @@
   <!-- HEADER -->
   <header class="topbar">
     <div class="brand">
-      <img class="logo" src="assets/logo.png" alt="Sultan Mart Logo" onerror="this.style.display='none'" />
-      <div class="brandText">
-        <h1>Sultan Mart Bharatganj</h1>
-        <p>Online Grocery • 7 AM – 10 PM</p>
-        <p class="mini">Minimum Order: ₹199 • Bharatganj Free Delivery</p>
+      <img src="assets/logo.png" class="logo" alt="Logo" />
+      <div class="brand-text">
+        <div class="brand-title">Sultan Mart Bharatganj</div>
+        <div class="brand-subtitle">Online Grocery • 7 AM – 10 PM</div>
+        <div class="brand-subtitle small">Minimum Order: ₹199 • Bharatganj Free Delivery</div>
       </div>
     </div>
 
-    <button id="cartBtn" class="cartBtn">
-      🛒 Cart <span id="cartCount" class="cartCount">0</span>
+    <button class="cart-btn" id="openCartBtn">
+      🛒 Cart <span id="cartCount">0</span>
     </button>
   </header>
 
-  <!-- MAIN -->
-  <main class="container">
-
-    <!-- INFO CARDS -->
-    <section class="infoGrid">
-      <div class="infoCard">
-        <h3>🚚 Delivery Info</h3>
-        <p><b>Free Delivery:</b> Bharatganj</p>
-        <p><b>Delivery Charge:</b> ₹20 (Other Areas)</p>
-        <p><b>Minimum Order:</b> ₹199</p>
-      </div>
-
-      <div class="infoCard">
-        <h3>⏰ Delivery Time Slots</h3>
-        <p><b>Morning:</b> 7 AM – 11 AM</p>
-        <p><b>Afternoon:</b> 12 PM – 4 PM</p>
-        <p><b>Evening:</b> 5 PM – 9 PM</p>
-      </div>
-    </section>
-
-    <!-- SEARCH -->
-    <div class="searchWrap">
-      <input id="searchInput" type="text" placeholder="Search products, category..." />
+  <!-- INFO BOXES -->
+  <section class="info-wrap">
+    <div class="info-card">
+      <div class="info-title">🚚 Delivery Info</div>
+      <div class="info-line"><b>Free Delivery:</b> Bharatganj</div>
+      <div class="info-line"><b>Delivery Charge:</b> ₹20 (Other Areas)</div>
+      <div class="info-line"><b>Minimum Order:</b> ₹199</div>
     </div>
 
-    <!-- CATEGORIES -->
-    <div id="categoryChips" class="chips"></div>
+    <div class="info-card">
+      <div class="info-title">⏰ Delivery Time Slots</div>
+      <div class="info-line"><b>Morning:</b> 7 AM – 11 AM</div>
+      <div class="info-line"><b>Afternoon:</b> 12 PM – 4 PM</div>
+      <div class="info-line"><b>Evening:</b> 5 PM – 9 PM</div>
+    </div>
+  </section>
 
-    <!-- OFFERS -->
-    <section class="sectionTitle">
-      <h2>🔥 Today’s Offers</h2>
-    </section>
-    <div id="offersGrid" class="grid"></div>
+  <!-- SEARCH -->
+  <section class="search-wrap">
+    <input id="searchInput" type="text" placeholder="Search products, category..." />
+  </section>
 
-    <!-- ALL PRODUCTS -->
-    <section class="sectionTitle">
-      <h2>🛍️ All Products</h2>
-    </section>
-    <div id="productsGrid" class="grid"></div>
+  <!-- CATEGORY -->
+  <section class="cats" id="categoryChips"></section>
 
-    <!-- FOOTER -->
-    <footer class="footer">
-      <p>© <span id="year"></span> Sultan Mart Bharatganj • Powered by GitHub + Vercel</p>
-    </footer>
-  </main>
+  <!-- OFFERS -->
+  <section class="section">
+    <h2 class="section-title">🔥 Today’s Offers</h2>
+    <div class="products-grid" id="offersGrid"></div>
+  </section>
+
+  <!-- ALL PRODUCTS -->
+  <section class="section">
+    <h2 class="section-title">🛍️ All Products</h2>
+    <div class="products-grid" id="productsGrid"></div>
+  </section>
 
   <!-- CART MODAL -->
-  <div id="cartModal" class="modal hidden">
-    <div class="modalBox">
-      <div class="modalHeader">
-        <h3>Your Cart</h3>
-        <button id="closeCart" class="closeBtn">✖</button>
+  <div class="modal-backdrop" id="cartBackdrop"></div>
+
+  <div class="cart-modal" id="cartModal">
+    <div class="cart-header">
+      <div class="cart-title">🛒 Your Cart</div>
+      <button class="close-btn" id="closeCartBtn">✖</button>
+    </div>
+
+    <div class="cart-body" id="cartItems"></div>
+
+    <div class="cart-footer">
+      <div class="cart-total">
+        Total: ₹<span id="cartTotal">0</span>
       </div>
 
-      <div class="modalBody">
+      <div class="cart-actions">
+        <a class="call-btn" id="callBtn" href="tel:9559868648">📞 Call</a>
 
-        <div id="cartItems" class="cartItems"></div>
+        <button class="wa-btn" id="whatsappBtn">
+          💬 Confirm on WhatsApp
+        </button>
 
-        <div class="cartForm">
-          <h4>👤 Customer Details</h4>
+        <button class="confirm-btn" id="confirmBtn">
+          ✅ Order Confirmed
+        </button>
 
-          <label>Full Name</label>
-          <input id="custName" type="text" placeholder="Enter your name" />
-
-          <label>Mobile Number</label>
-          <input id="custPhone" type="tel" placeholder="Enter mobile number" />
-
-          <label>Full Address</label>
-          <textarea id="custAddress" rows="2" placeholder="House No, Street, Landmark, Area..."></textarea>
-
-          <h4>🚚 Delivery Settings</h4>
-
-          <label>Delivery Area</label>
-          <select id="deliveryArea">
-            <option value="Bharatganj">Bharatganj (Free)</option>
-            <option value="Other">Other Areas (₹20)</option>
-          </select>
-
-          <label>Delivery Day</label>
-          <select id="deliveryDay">
-            <option value="Today">Today</option>
-            <option value="Tomorrow">Tomorrow</option>
-          </select>
-
-          <label>Delivery Time Slot</label>
-          <select id="deliverySlot">
-            <option value="Morning (7 AM - 11 AM)">Morning (7 AM - 11 AM)</option>
-            <option value="Afternoon (12 PM - 4 PM)">Afternoon (12 PM - 4 PM)</option>
-            <option value="Evening (5 PM - 9 PM)">Evening (5 PM - 9 PM)</option>
-          </select>
-
-          <h4>💳 Payment</h4>
-
-          <label>Payment Method</label>
-          <select id="paymentMethod">
-            <option value="Cash on Delivery">Cash on Delivery</option>
-            <option value="UPI Payment">UPI Payment</option>
-          </select>
-
-          <div class="upiBox">
-            <div>
-              <b>UPI ID:</b> <span id="upiIdText">9559868648@ptyes</span>
-              <p class="mini">Pay on UPI & send screenshot on WhatsApp.</p>
-            </div>
-            <button id="copyUpi" class="smallBtn">Copy</button>
-          </div>
-
-          <div class="billBox">
-            <h4>🧾 Bill Summary</h4>
-            <div class="billRow">
-              <span>Items Total</span>
-              <b id="itemsTotal">₹0</b>
-            </div>
-            <div class="billRow">
-              <span>Delivery Charge</span>
-              <b id="deliveryCharge">₹0</b>
-            </div>
-            <div class="billRow big">
-              <span>Grand Total</span>
-              <b id="grandTotal">₹0</b>
-            </div>
-          </div>
-
-          <div class="actionRow">
-            <a class="callBtn" href="tel:9559868648">📞 Call Store</a>
-            <button id="whatsappOrder" class="waBtn">💬 Confirm Order on WhatsApp</button>
-          </div>
-
-          <p class="mini centerNote">
-            “Confirm Order” करते ही आपका cart clear हो जाएगा.
-          </p>
-
-        </div>
+        <button class="clear-btn" id="clearCartBtn">
+          🗑️ Clear Cart
+        </button>
       </div>
     </div>
   </div>
