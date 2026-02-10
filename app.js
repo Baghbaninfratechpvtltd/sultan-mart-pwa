@@ -1,508 +1,594 @@
-const SHEET_CSV_URL =
+/* =========================================
+   Sultan Mart Bharatganj - PWA Grocery App
+   Full app.js (Copy-Paste)
+   ========================================= */
+
+/* -------------------------
+   YOUR SETTINGS (EDIT ONLY)
+   ------------------------- */
+
+// Google Sheet CSV link (IMPORTANT)
+// Your sheet must be PUBLIC and headers must be exactly:
+// ID,Name,Category,MRP,Discount,Sale Price,Stock,Image
+
+// ⚠️ Replace this with your actual sheet CSV link
+const GOOGLE_SHEET_CSV =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0DkCrsf4_AD96Kv9yaYNbMUUHpQtz59zkXH9f1T9mPI2pXB-OcXTR0pdO-9sgyarYD4pEp8nolt5R/pub?output=csv";
 
+// Shop details
 const SHOP_NAME = "Sultan Mart Bharatganj";
+const SHOP_PHONE = "9559868648";
 const WHATSAPP_NUMBER = "9559868648";
-const MIN_ORDER = 199;
 const UPI_ID = "9559868648@ptyes";
 
-/* Delivery Rules */
-const DELIVERY_CHARGE_OTHER = 20;
+// Delivery rules
+const MIN_ORDER = 199;
+const OTHER_AREA_CHARGE = 20;
 
-const productsGrid = document.getElementById("productsGrid");
-const offersGrid = document.getElementById("offersGrid");
-const searchInput = document.getElementById("searchInput");
-const categoryButtonsWrap = document.getElementById("categoryButtons");
-const allCatBtn = document.getElementById("allCatBtn");
+// Delivery slots
+const DELIVERY_SLOTS = [
+  { value: "Morning (7 AM - 11 AM)", label: "Morning (7 AM - 11 AM)" },
+  { value: "Afternoon (12 PM - 4 PM)", label: "Afternoon (12 PM - 4 PM)" },
+  { value: "Evening (5 PM - 9 PM)", label: "Evening (5 PM - 9 PM)" },
+];
 
-const cartCount = document.getElementById("cartCount");
-const cartItems = document.getElementById("cartItems");
+// Delivery areas
+const DELIVERY_AREAS = [
+  { value: "Bharatganj", label: "Bharatganj (Free)", charge: 0 },
+  { value: "Other", label: "Other Areas (₹20)", charge: OTHER_AREA_CHARGE },
+];
 
-const cartSubtotalEl = document.getElementById("cartSubtotal");
-const deliveryChargeEl = document.getElementById("deliveryCharge");
-const cartTotalEl = document.getElementById("cartTotal");
+/* -------------------------
+   GLOBAL STATE
+   ------------------------- */
 
-const whatsappOrderBtn = document.getElementById("whatsappOrderBtn");
-const minOrderNote = document.getElementById("minOrderNote");
+let allProducts = [];
+let filteredProducts = [];
+let cart = [];
+let selectedCategory = "All";
 
-const deliveryAreaSelect = document.getElementById("deliveryArea");
-const deliverySlotSelect = document.getElementById("deliverySlot");
-const deliveryDaySelect = document.getElementById("deliveryDay");
+/* -------------------------
+   HELPERS
+   ------------------------- */
 
-const paymentMethodSelect = document.getElementById("paymentMethod");
-const upiBox = document.getElementById("upiBox");
+const qs = (s) => document.querySelector(s);
+const qsa = (s) => document.querySelectorAll(s);
 
-const custName = document.getElementById("custName");
-const custMobile = document.getElementById("custMobile");
-const custAddress = document.getElementById("custAddress");
-
-const copyUpiBtn = document.getElementById("copyUpiBtn");
-
-const cartDrawer = document.getElementById("cartDrawer");
-const drawerOverlay = document.getElementById("drawerOverlay");
-const cartOpenBtn = document.getElementById("cartOpenBtn");
-const cartCloseBtn = document.getElementById("cartCloseBtn");
-
-let ALL_PRODUCTS = [];
-let FILTERED_PRODUCTS = [];
-let ACTIVE_CATEGORY = "All";
-let CART = JSON.parse(localStorage.getItem("sultan_cart") || "{}");
-
-/* Save customer info */
-function saveCustomer() {
-  localStorage.setItem("cust_name", custName.value.trim());
-  localStorage.setItem("cust_mobile", custMobile.value.trim());
-  localStorage.setItem("cust_address", custAddress.value.trim());
-  localStorage.setItem("delivery_area", deliveryAreaSelect.value);
-  localStorage.setItem("delivery_slot", deliverySlotSelect.value);
-  localStorage.setItem("delivery_day", deliveryDaySelect.value);
-  localStorage.setItem("payment_method", paymentMethodSelect.value);
+function rupee(n) {
+  const num = Number(n || 0);
+  return "₹" + Math.round(num);
 }
 
-function loadCustomer() {
-  custName.value = localStorage.getItem("cust_name") || "";
-  custMobile.value = localStorage.getItem("cust_mobile") || "";
-  custAddress.value = localStorage.getItem("cust_address") || "";
-  deliveryAreaSelect.value = localStorage.getItem("delivery_area") || "Bharatganj";
-  deliverySlotSelect.value = localStorage.getItem("delivery_slot") || "Morning";
-  deliveryDaySelect.value = localStorage.getItem("delivery_day") || "Today";
-  paymentMethodSelect.value = localStorage.getItem("payment_method") || "COD";
+function safeText(t) {
+  return String(t || "").trim();
 }
 
-function safeNumber(v) {
-  const n = Number(String(v).replace(/[^\d.]/g, ""));
-  return isNaN(n) ? 0 : n;
+function parseNumber(v) {
+  if (v === null || v === undefined) return 0;
+  const x = String(v).replace(/[^\d.]/g, "");
+  return Number(x || 0);
 }
 
-function formatMoney(n) {
-  return `₹${Math.round(n)}`;
-}
+/* -------------------------
+   CSV PARSER
+   ------------------------- */
 
-function parseCSV(text) {
-  const lines = text.trim().split("\n");
+function csvToArray(csv) {
   const rows = [];
+  let row = [];
+  let col = "";
+  let insideQuotes = false;
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const cells = [];
-    let current = "";
-    let inQuotes = false;
+  for (let i = 0; i < csv.length; i++) {
+    const c = csv[i];
+    const next = csv[i + 1];
 
-    for (let j = 0; j < line.length; j++) {
-      const ch = line[j];
-
-      if (ch === '"' && line[j + 1] === '"') {
-        current += '"';
-        j++;
-      } else if (ch === '"') {
-        inQuotes = !inQuotes;
-      } else if (ch === "," && !inQuotes) {
-        cells.push(current.trim());
-        current = "";
-      } else {
-        current += ch;
-      }
+    if (c === '"' && insideQuotes && next === '"') {
+      col += '"';
+      i++;
+      continue;
     }
-    cells.push(current.trim());
-    rows.push(cells);
+
+    if (c === '"') {
+      insideQuotes = !insideQuotes;
+      continue;
+    }
+
+    if (c === "," && !insideQuotes) {
+      row.push(col);
+      col = "";
+      continue;
+    }
+
+    if ((c === "\n" || c === "\r") && !insideQuotes) {
+      if (col.length > 0 || row.length > 0) {
+        row.push(col);
+        rows.push(row);
+      }
+      row = [];
+      col = "";
+      continue;
+    }
+
+    col += c;
   }
+
+  if (col.length > 0 || row.length > 0) {
+    row.push(col);
+    rows.push(row);
+  }
+
   return rows;
 }
 
+/* -------------------------
+   LOAD PRODUCTS FROM SHEET
+   ------------------------- */
+
 async function loadProducts() {
+  qs("#loadingText").style.display = "block";
+  qs("#loadingText").innerText = "Loading products from Google Sheet...";
+
   try {
-    const res = await fetch(SHEET_CSV_URL);
-    const csvText = await res.text();
-    const rows = parseCSV(csvText);
+    const url = GOOGLE_SHEET_CSV + "&_ts=" + Date.now();
+    const res = await fetch(url);
+    const csv = await res.text();
 
-    const headers = rows[0].map((h) => h.trim().toLowerCase());
+    const rows = csvToArray(csv);
 
-    const idx = {
-      id: headers.indexOf("id"),
-      name: headers.indexOf("name"),
-      category: headers.indexOf("category"),
-      mrp: headers.indexOf("mrp"),
-      discount: headers.indexOf("discount"),
-      salePrice: headers.indexOf("sale price"),
-      stock: headers.indexOf("stock"),
-      image: headers.indexOf("image"),
-    };
+    if (!rows || rows.length < 2) throw new Error("Sheet is empty.");
 
-    if (idx.name === -1 || idx.category === -1 || idx.mrp === -1) {
-      alert("❌ Sheet headers गलत हैं.\nRow1 में: ID, Name, Category, MRP, Discount, Sale Price, Stock, Image होना चाहिए.");
-      return;
+    const headers = rows[0].map((h) => safeText(h));
+
+    const required = ["ID", "Name", "Category", "MRP", "Discount", "Sale Price", "Stock", "Image"];
+    const missing = required.filter((r) => !headers.includes(r));
+
+    if (missing.length) {
+      throw new Error(
+        "Sheet headers गलत हैं. Required headers:\n" +
+          required.join(", ") +
+          "\n\nMissing: " +
+          missing.join(", ")
+      );
     }
 
-    const products = [];
+    const idx = {};
+    headers.forEach((h, i) => (idx[h] = i));
 
-    for (let i = 1; i < rows.length; i++) {
-      const r = rows[i];
-      if (!r || r.length < 3) continue;
+    allProducts = rows.slice(1).map((r) => {
+      const id = safeText(r[idx["ID"]]);
+      const name = safeText(r[idx["Name"]]);
+      const category = safeText(r[idx["Category"]]);
+      const mrp = parseNumber(r[idx["MRP"]]);
+      const discount = parseNumber(r[idx["Discount"]]);
+      const sale = parseNumber(r[idx["Sale Price"]]);
+      const stock = parseNumber(r[idx["Stock"]]);
+      const image = safeText(r[idx["Image"]]);
 
-      const name = r[idx.name] || "";
-      const category = r[idx.category] || "Other";
-      const mrp = safeNumber(r[idx.mrp]);
-      const discount = safeNumber(r[idx.discount] || 0);
-      let sale = safeNumber(r[idx.salePrice] || 0);
-      const stock = safeNumber(r[idx.stock] || 0);
-      const image = (r[idx.image] || "").trim();
-
-      if (!name) continue;
-
-      if (!sale || sale <= 0) {
-        sale = mrp - (mrp * discount) / 100;
+      let salePrice = sale;
+      if (!salePrice || salePrice <= 0) {
+        if (discount > 0) salePrice = mrp - (mrp * discount) / 100;
+        else salePrice = mrp;
       }
 
-      products.push({
-        id: (r[idx.id] || i).toString(),
+      return {
+        id,
         name,
         category,
         mrp,
         discount,
-        salePrice: sale,
+        price: Math.round(salePrice),
         stock,
-        image: image || "https://i.ibb.co/2y0G8dJ/no-image.png",
-      });
-    }
+        image,
+      };
+    });
 
-    ALL_PRODUCTS = products;
-    FILTERED_PRODUCTS = [...ALL_PRODUCTS];
+    allProducts = allProducts.filter((p) => p.id && p.name);
+    filteredProducts = [...allProducts];
 
-    buildCategoryButtons();
-    renderAll();
+    renderCategories();
+    renderProducts();
+    updateCartUI();
+
+    qs("#loadingText").style.display = "none";
   } catch (err) {
-    console.error(err);
-    alert("❌ Products load नहीं हो रहे. Google Sheet publish/CSV link check करो.");
+    qs("#loadingText").style.display = "block";
+    qs("#loadingText").innerText = "❌ Error: " + err.message;
   }
 }
 
-function buildCategoryButtons() {
-  const cats = [...new Set(ALL_PRODUCTS.map((p) => p.category))].sort();
-  categoryButtonsWrap.innerHTML = "";
+/* -------------------------
+   RENDER CATEGORIES
+   ------------------------- */
+
+function renderCategories() {
+  const chipWrap = qs("#categoryChips");
+  chipWrap.innerHTML = "";
+
+  const cats = ["All", ...new Set(allProducts.map((p) => p.category))];
 
   cats.forEach((cat) => {
     const btn = document.createElement("button");
-    btn.className = "catBtn";
-    btn.dataset.cat = cat;
-    btn.textContent = cat;
+    btn.className = "chip " + (cat === selectedCategory ? "active" : "");
+    btn.innerText = cat;
 
-    btn.addEventListener("click", () => {
-      ACTIVE_CATEGORY = cat;
-      document.querySelectorAll(".catBtn").forEach((b) => b.classList.remove("active"));
+    btn.onclick = () => {
+      selectedCategory = cat;
+      qsa(".chip").forEach((x) => x.classList.remove("active"));
       btn.classList.add("active");
-      allCatBtn.classList.remove("active");
-      filterProducts();
-    });
+      applyFilters();
+    };
 
-    categoryButtonsWrap.appendChild(btn);
-  });
-
-  allCatBtn.addEventListener("click", () => {
-    ACTIVE_CATEGORY = "All";
-    document.querySelectorAll(".catBtn").forEach((b) => b.classList.remove("active"));
-    allCatBtn.classList.add("active");
-    filterProducts();
+    chipWrap.appendChild(btn);
   });
 }
 
-function filterProducts() {
-  const q = searchInput.value.trim().toLowerCase();
+/* -------------------------
+   FILTERS
+   ------------------------- */
 
-  FILTERED_PRODUCTS = ALL_PRODUCTS.filter((p) => {
-    const matchSearch =
-      p.name.toLowerCase().includes(q) ||
-      p.category.toLowerCase().includes(q);
+function applyFilters() {
+  const q = safeText(qs("#searchInput").value).toLowerCase();
 
-    const matchCat = ACTIVE_CATEGORY === "All" ? true : p.category === ACTIVE_CATEGORY;
+  filteredProducts = allProducts.filter((p) => {
+    const matchText =
+      p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
 
-    return matchSearch && matchCat;
+    const matchCat = selectedCategory === "All" ? true : p.category === selectedCategory;
+
+    return matchText && matchCat;
   });
 
-  renderAll();
-}
-
-function renderAll() {
-  renderOffers();
   renderProducts();
-  renderCart();
 }
 
-function renderOffers() {
-  const offers = FILTERED_PRODUCTS.filter((p) => p.discount > 0).slice(0, 12);
-
-  if (offers.length === 0) {
-    offersGrid.innerHTML = `<div style="opacity:.7;font-weight:900;">No offers today.</div>`;
-    return;
-  }
-
-  offersGrid.innerHTML = offers.map(productCardHTML).join("");
-  bindAddButtons(offersGrid);
-}
+/* -------------------------
+   RENDER PRODUCTS
+   ------------------------- */
 
 function renderProducts() {
-  if (FILTERED_PRODUCTS.length === 0) {
-    productsGrid.innerHTML = `<div style="opacity:.7;font-weight:900;">No products found.</div>`;
+  const grid = qs("#productGrid");
+  grid.innerHTML = "";
+
+  if (!filteredProducts.length) {
+    grid.innerHTML = `<div style="padding:18px;font-weight:900;color:#444;">No products found.</div>`;
     return;
   }
 
-  productsGrid.innerHTML = FILTERED_PRODUCTS.map(productCardHTML).join("");
-  bindAddButtons(productsGrid);
-}
+  filteredProducts.forEach((p) => {
+    const card = document.createElement("div");
+    card.className = "card";
 
-function productCardHTML(p) {
-  const showMrp = p.mrp > p.salePrice;
-  const discountBadge = p.discount > 0 ? `<span class="badge">${p.discount}% OFF</span>` : "";
+    const showOff = p.discount && p.discount > 0 && p.mrp > p.price;
 
-  const disabled = p.stock <= 0 ? "disabled" : "";
+    card.innerHTML = `
+      <div class="imgbox">
+        <img src="${p.image}" alt="${p.name}" onerror="this.src='https://dummyimage.com/600x400/f1f3f8/777&text=No+Image';">
+      </div>
 
-  return `
-    <div class="card">
-      <img class="cardImg" src="${p.image}" alt="${p.name}" loading="lazy" />
-      <div class="cardBody">
-        <div class="cardTitle">${p.name}</div>
-        <div class="cardCat">${p.category}</div>
+      <div class="content">
+        <div class="p-name">${p.name}</div>
+        <div class="p-cat">${p.category}</div>
 
-        <div class="priceRow">
-          <div class="salePrice">${formatMoney(p.salePrice)}</div>
-          ${showMrp ? `<div class="mrp">${formatMoney(p.mrp)}</div>` : ""}
-          ${discountBadge}
+        <div class="price-row">
+          <div>
+            <span class="p-price">${rupee(p.price)}</span>
+            ${
+              showOff
+                ? `<span class="p-mrp">${rupee(p.mrp)}</span>`
+                : ""
+            }
+          </div>
         </div>
 
-        <div class="stock">${p.stock > 0 ? `Stock: ${p.stock}` : "Out of stock ❌"}</div>
+        <div class="badges">
+          ${
+            showOff
+              ? `<span class="badge off">${p.discount}% OFF</span>`
+              : `<span class="badge">MRP</span>`
+          }
+          <span class="badge">Stock: ${p.stock}</span>
+        </div>
 
-        <button class="addBtn" data-id="${p.id}" ${disabled}>
-          ${p.stock > 0 ? "Add to Cart" : "Not Available"}
+        <button class="btn" ${
+          p.stock <= 0 ? "disabled" : ""
+        } onclick="addToCart('${p.id}')">
+          ${p.stock <= 0 ? "Out of Stock" : "Add to Cart"}
         </button>
       </div>
-    </div>
-  `;
-}
+    `;
 
-function bindAddButtons(root) {
-  root.querySelectorAll(".addBtn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      addToCart(btn.dataset.id);
-    });
+    grid.appendChild(card);
   });
 }
 
+/* -------------------------
+   CART FUNCTIONS
+   ------------------------- */
+
 function addToCart(id) {
-  const p = ALL_PRODUCTS.find((x) => x.id === id);
+  const p = allProducts.find((x) => x.id === id);
   if (!p) return;
 
   if (p.stock <= 0) {
-    alert("❌ ये product अभी available नहीं है");
+    alert("Out of stock!");
     return;
   }
 
-  CART[id] = (CART[id] || 0) + 1;
-  saveCart();
-  renderCart();
+  const found = cart.find((c) => c.id === id);
+  if (found) {
+    if (found.qty + 1 > p.stock) {
+      alert("Stock limit reached!");
+      return;
+    }
+    found.qty += 1;
+  } else {
+    cart.push({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      price: p.price,
+      mrp: p.mrp,
+      img: p.image,
+      qty: 1,
+    });
+  }
+
+  updateCartUI();
 }
 
 function changeQty(id, delta) {
-  CART[id] = (CART[id] || 0) + delta;
-  if (CART[id] <= 0) delete CART[id];
-  saveCart();
-  renderCart();
-}
+  const p = allProducts.find((x) => x.id === id);
+  const c = cart.find((x) => x.id === id);
+  if (!c) return;
 
-function saveCart() {
-  localStorage.setItem("sultan_cart", JSON.stringify(CART));
-}
+  c.qty += delta;
 
-function getDeliveryCharge(subtotal) {
-  if (subtotal <= 0) return 0;
-  return deliveryAreaSelect.value === "Bharatganj" ? 0 : DELIVERY_CHARGE_OTHER;
-}
-
-function toggleUPIBox() {
-  if (paymentMethodSelect.value === "UPI") {
-    upiBox.style.display = "block";
+  if (c.qty <= 0) {
+    cart = cart.filter((x) => x.id !== id);
   } else {
-    upiBox.style.display = "none";
+    if (p && c.qty > p.stock) {
+      c.qty = p.stock;
+      alert("Max stock reached!");
+    }
   }
+
+  updateCartUI();
 }
 
-function renderCart() {
-  const ids = Object.keys(CART);
+function removeItem(id) {
+  cart = cart.filter((x) => x.id !== id);
+  updateCartUI();
+}
 
-  let subtotal = 0;
-  let items = 0;
+function cartCount() {
+  return cart.reduce((sum, x) => sum + x.qty, 0);
+}
 
-  if (ids.length === 0) {
-    cartItems.innerHTML = `<p style="opacity:.7;font-weight:900;">Cart is empty.</p>`;
+function cartSubtotal() {
+  return cart.reduce((sum, x) => sum + x.price * x.qty, 0);
+}
+
+function getDeliveryCharge() {
+  const area = qs("#deliveryArea").value;
+  const areaObj = DELIVERY_AREAS.find((a) => a.value === area);
+  return areaObj ? areaObj.charge : OTHER_AREA_CHARGE;
+}
+
+function updateCartUI() {
+  qs("#cartCount").innerText = cartCount();
+
+  const list = qs("#cartItemsList");
+  list.innerHTML = "";
+
+  if (!cart.length) {
+    list.innerHTML = `<div style="padding:10px;font-weight:900;color:#555;">Cart is empty.</div>`;
   } else {
-    cartItems.innerHTML = ids.map((id) => {
-      const p = ALL_PRODUCTS.find((x) => x.id === id);
-      if (!p) return "";
-
-      const qty = CART[id];
-      const line = p.salePrice * qty;
-
-      subtotal += line;
-      items += qty;
-
-      return `
-        <div class="cartItem">
-          <img src="${p.image}" alt="${p.name}" />
-          <div class="cartItemInfo">
-            <div class="cartItemName">${p.name}</div>
-            <div class="cartItemPrice">${formatMoney(p.salePrice)}</div>
-
-            <div class="qtyRow">
-              <button class="qtyBtn" data-id="${id}" data-d="-1">-</button>
-              <div class="qtyNum">${qty}</div>
-              <button class="qtyBtn" data-id="${id}" data-d="1">+</button>
-            </div>
-          </div>
+    cart.forEach((item) => {
+      const row = document.createElement("div");
+      row.className = "cart-row";
+      row.innerHTML = `
+        <img src="${item.img}" onerror="this.src='https://dummyimage.com/600x400/f1f3f8/777&text=No+Image';">
+        <div class="info">
+          <div class="title">${item.name}</div>
+          <div class="sub">${item.category} • ${rupee(item.price)} each</div>
         </div>
+
+        <div class="qty">
+          <button onclick="changeQty('${item.id}', -1)">-</button>
+          <span>${item.qty}</span>
+          <button onclick="changeQty('${item.id}', 1)">+</button>
+        </div>
+
+        <button class="remove" onclick="removeItem('${item.id}')">Remove</button>
       `;
-    }).join("");
-
-    cartItems.querySelectorAll(".qtyBtn").forEach((b) => {
-      b.addEventListener("click", () => {
-        const id = b.dataset.id;
-        const d = Number(b.dataset.d);
-        changeQty(id, d);
-      });
+      list.appendChild(row);
     });
   }
 
-  const deliveryCharge = getDeliveryCharge(subtotal);
-  const total = subtotal + deliveryCharge;
+  const sub = cartSubtotal();
+  const charge = getDeliveryCharge();
+  const grand = sub + charge;
 
-  cartSubtotalEl.textContent = formatMoney(subtotal);
-  deliveryChargeEl.textContent = formatMoney(deliveryCharge);
-  cartTotalEl.textContent = formatMoney(total);
-  cartCount.textContent = items;
+  qs("#billSubtotal").innerText = rupee(sub);
+  qs("#billDelivery").innerText = charge === 0 ? "Free" : rupee(charge);
+  qs("#billGrand").innerText = rupee(grand);
 
-  if (subtotal > 0 && subtotal < MIN_ORDER) {
-    minOrderNote.style.display = "block";
-    minOrderNote.textContent = `Minimum order ₹${MIN_ORDER}. Add ₹${Math.ceil(MIN_ORDER - subtotal)} more.`;
-  } else {
-    minOrderNote.style.display = "none";
-  }
-
-  whatsappOrderBtn.onclick = () => {
-    if (ids.length === 0) {
-      alert("Cart खाली है 😅");
-      return;
-    }
-
-    if (subtotal < MIN_ORDER) {
-      alert(`Minimum order ₹${MIN_ORDER} है भाई 🙏`);
-      return;
-    }
-
-    const name = custName.value.trim();
-    const mobile = custMobile.value.trim();
-    const address = custAddress.value.trim();
-
-    if (!name || !mobile || mobile.length < 10 || !address) {
-      alert("❌ कृपया Name, Mobile और Address जरूर भरें");
-      return;
-    }
-
-    const area = deliveryAreaSelect.value;
-    const slot = deliverySlotSelect.value;
-    const day = deliveryDaySelect.value;
-    const pay = paymentMethodSelect.value;
-
-    saveCustomer();
-
-    let msg = `🛒 *${SHOP_NAME}*%0A%0A`;
-
-    msg += `👤 *Customer:* ${name}%0A`;
-    msg += `📞 *Mobile:* ${mobile}%0A`;
-    msg += `🏠 *Address:* ${address}%0A%0A`;
-
-    msg += `📍 *Area:* ${area}%0A`;
-    msg += `📅 *Delivery Day:* ${day}%0A`;
-    msg += `⏰ *Slot:* ${slot}%0A`;
-    msg += `💳 *Payment:* ${pay}%0A%0A`;
-
-    msg += `*Order List:*%0A`;
-
-    ids.forEach((id, i) => {
-      const p = ALL_PRODUCTS.find((x) => x.id === id);
-      const qty = CART[id];
-      msg += `${i + 1}. ${p.name}  x${qty}  = ${formatMoney(p.salePrice * qty)}%0A`;
-    });
-
-    msg += `%0A*Subtotal:* ${formatMoney(subtotal)}%0A`;
-    msg += `*Delivery Charge:* ${formatMoney(deliveryCharge)}%0A`;
-    msg += `*Total:* ${formatMoney(total)}%0A%0A`;
-
-    if (pay === "UPI") {
-      msg += `💳 *UPI:* ${UPI_ID}%0A`;
-      msg += `📸 Payment screenshot भेज दें 🙏`;
-    } else {
-      msg += `🚚 COD selected. Please keep cash ready 🙏`;
-    }
-
-    const waUrl = `https://wa.me/91${WHATSAPP_NUMBER}?text=${msg}`;// ✅ Cart Clear after Confirm
-cart = [];
-localStorage.setItem("cart", JSON.stringify(cart));
-renderCart();
-updateCartCount();
-alert("✅ Order Confirmed! Cart cleared.");
-
-    window.open(waUrl, "_blank");
-  };
+  qs("#callLink").href = "tel:" + SHOP_PHONE;
+  qs("#upiText").innerText = UPI_ID;
 }
 
-/* Drawer */
+/* -------------------------
+   MODAL OPEN/CLOSE
+   ------------------------- */
+
 function openCart() {
-  cartDrawer.classList.add("show");
-  drawerOverlay.classList.add("show");
+  qs("#cartModal").classList.add("open");
 }
+
 function closeCart() {
-  cartDrawer.classList.remove("show");
-  drawerOverlay.classList.remove("show");
+  qs("#cartModal").classList.remove("open");
 }
 
-cartOpenBtn.addEventListener("click", openCart);
-cartCloseBtn.addEventListener("click", closeCart);
-drawerOverlay.addEventListener("click", closeCart);
+/* -------------------------
+   COPY UPI
+   ------------------------- */
 
-/* Search */
-searchInput.addEventListener("input", filterProducts);
+function copyUPI() {
+  navigator.clipboard.writeText(UPI_ID);
+  alert("UPI ID Copied: " + UPI_ID);
+}
 
-/* Delivery changes */
-deliveryAreaSelect.addEventListener("change", () => { saveCustomer(); renderCart(); });
-deliverySlotSelect.addEventListener("change", () => { saveCustomer(); renderCart(); });
-deliveryDaySelect.addEventListener("change", () => { saveCustomer(); renderCart(); });
+/* -------------------------
+   ORDER CONFIRM (WhatsApp)
+   ------------------------- */
 
-/* Payment */
-paymentMethodSelect.addEventListener("change", () => {
-  saveCustomer();
-  toggleUPIBox();
-});
+function buildOrderMessage() {
+  const name = safeText(qs("#custName").value);
+  const mobile = safeText(qs("#custMobile").value);
+  const address = safeText(qs("#custAddress").value);
 
-/* Customer save */
-custName.addEventListener("input", saveCustomer);
-custMobile.addEventListener("input", saveCustomer);
-custAddress.addEventListener("input", saveCustomer);
+  const area = qs("#deliveryArea").value;
+  const day = qs("#deliveryDay").value;
+  const slot = qs("#deliverySlot").value;
+  const payment = qs("#paymentMethod").value;
 
-/* Copy UPI */
-copyUpiBtn.addEventListener("click", async () => {
-  try {
-    await navigator.clipboard.writeText(UPI_ID);
-    copyUpiBtn.textContent = "Copied ✅";
-    setTimeout(() => (copyUpiBtn.textContent = "Copy"), 1500);
-  } catch (e) {
-    alert("Copy नहीं हो पाया, manually copy कर लो: " + UPI_ID);
+  const sub = cartSubtotal();
+  const charge = getDeliveryCharge();
+  const grand = sub + charge;
+
+  let msg = `🛒 *${SHOP_NAME}*\n`;
+  msg += `✅ *New Order Request*\n\n`;
+
+  msg += `👤 Name: ${name}\n`;
+  msg += `📞 Mobile: ${mobile}\n`;
+  msg += `🏠 Address: ${address}\n\n`;
+
+  msg += `🚚 Delivery Area: ${area}\n`;
+  msg += `📅 Delivery Day: ${day}\n`;
+  msg += `⏰ Time Slot: ${slot}\n\n`;
+
+  msg += `💳 Payment: ${payment}\n`;
+  if (payment === "UPI Payment") msg += `🧾 UPI ID: ${UPI_ID}\n`;
+  msg += `\n`;
+
+  msg += `🧺 *Items:*\n`;
+  cart.forEach((x, i) => {
+    msg += `${i + 1}. ${x.name}  x${x.qty}  = ${rupee(x.price * x.qty)}\n`;
+  });
+
+  msg += `\n📌 Subtotal: ${rupee(sub)}\n`;
+  msg += `🚚 Delivery Charge: ${charge === 0 ? "Free" : rupee(charge)}\n`;
+  msg += `💰 *Grand Total: ${rupee(grand)}*\n\n`;
+
+  msg += `🙏 Please confirm my order.`;
+
+  return msg;
+}
+
+function confirmOrder() {
+  if (!cart.length) {
+    alert("Cart is empty!");
+    return;
   }
-});
 
-/* PWA */
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./service-worker.js").catch(console.error);
+  const name = safeText(qs("#custName").value);
+  const mobile = safeText(qs("#custMobile").value);
+  const address = safeText(qs("#custAddress").value);
+
+  if (!name || !mobile || !address) {
+    alert("Please fill Name, Mobile, Address.");
+    return;
+  }
+
+  if (mobile.length < 10) {
+    alert("Mobile number सही डालो!");
+    return;
+  }
+
+  const message = buildOrderMessage();
+  const wa = `https://wa.me/91${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  window.open(wa, "_blank");
+
+  alert("✅ Order Request Sent on WhatsApp!\n\nShop will confirm your order soon.");
+
+  cart = [];
+  updateCartUI();
+  closeCart();
+
+  qs("#custName").value = "";
+  qs("#custMobile").value = "";
+  qs("#custAddress").value = "";
 }
 
-/* Load */
-loadCustomer();
-toggleUPIBox();
-loadProducts();
+/* -------------------------
+   INIT DROPDOWNS
+   ------------------------- */
 
+function initDeliveryUI() {
+  const areaSel = qs("#deliveryArea");
+  areaSel.innerHTML = "";
+  DELIVERY_AREAS.forEach((a) => {
+    const opt = document.createElement("option");
+    opt.value = a.value;
+    opt.innerText = a.label;
+    areaSel.appendChild(opt);
+  });
+
+  const daySel = qs("#deliveryDay");
+  daySel.innerHTML = "";
+  ["Today", "Tomorrow"].forEach((d) => {
+    const opt = document.createElement("option");
+    opt.value = d;
+    opt.innerText = d;
+    daySel.appendChild(opt);
+  });
+
+  const slotSel = qs("#deliverySlot");
+  slotSel.innerHTML = "";
+  DELIVERY_SLOTS.forEach((s) => {
+    const opt = document.createElement("option");
+    opt.value = s.value;
+    opt.innerText = s.label;
+    slotSel.appendChild(opt);
+  });
+
+  const paySel = qs("#paymentMethod");
+  paySel.innerHTML = "";
+  ["UPI Payment", "Cash on Delivery"].forEach((p) => {
+    const opt = document.createElement("option");
+    opt.value = p;
+    opt.innerText = p;
+    paySel.appendChild(opt);
+  });
+
+  areaSel.addEventListener("change", () => updateCartUI());
+}
+
+/* -------------------------
+   EVENT LISTENERS
+   ------------------------- */
+
+window.addEventListener("load", () => {
+  qs("#openCartBtn").addEventListener("click", openCart);
+  qs("#closeCartBtn").addEventListener("click", closeCart);
+
+  qs("#copyUpiBtn").addEventListener("click", copyUPI);
+  qs("#confirmOrderBtn").addEventListener("click", confirmOrder);
+
+  qs("#searchInput").addEventListener("input", applyFilters);
+
+  qs("#cartModal").addEventListener("click", (e) => {
+    if (e.target.classList.contains("modal-overlay")) closeCart();
+  });
+
+  initDeliveryUI();
+  loadProducts();
+});
+
+/* -------------------------
+   MAKE FUNCTIONS GLOBAL
+   ------------------------- */
+window.addToCart = addToCart;
+window.changeQty = changeQty;
+window.removeItem = removeItem;
