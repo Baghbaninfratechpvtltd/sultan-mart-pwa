@@ -12,7 +12,7 @@ const STORE = {
 };
 
 // Google Sheet CSV
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0DkCrsf4_AD96Kv9yaYNbMUUHpQtz59zkXH9f1T9mPI2pXB-OcXTR0pdO-9sgyarYD4pEp8nolt5R/pub?output=csv";
+const CSV_URL = "https://docs.google.com/spreadsheets/d/1AdPQGVtZvoiFpY4tMCrxXEf1KcK96G71OUWYyFEAvRg/edit?usp=drivesdk";
 
 // fallback image
 const FALLBACK_IMG = "assets/fallback.png";
@@ -494,3 +494,4 @@ openUpiLink.addEventListener("click", openUpi);
     allGrid.innerHTML = `<p class="small">CSV Link Wrong / Sheet Not Public</p>`;
   }
 })();
+
