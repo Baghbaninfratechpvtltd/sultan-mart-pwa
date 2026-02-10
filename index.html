@@ -138,6 +138,18 @@
           </select>
         </div>
 
+        <!-- UPI PAY LINK (AUTO SHOW) -->
+        <div id="upiPayBox" class="upi-pay-box" style="display:none;">
+          <div class="upi-pay-title">💳 UPI Pay Now</div>
+          <div class="upi-pay-row">
+            <a id="upiPayBtn" class="upi-pay-btn" href="#" target="_blank">⚡ Pay Now</a>
+            <button id="copyUpiLinkBtn" class="upi-pay-copy">Copy Link</button>
+          </div>
+          <div class="upi-pay-note">
+            Pay करने के बाद screenshot WhatsApp पर भेजें.
+          </div>
+        </div>
+
         <textarea id="custNote" placeholder="Any note (optional)"></textarea>
       </div>
 
@@ -172,12 +184,11 @@
       <div class="actions">
         <a class="btn outline" href="tel:9559868648">📞 Call</a>
         <button id="whatsappBtn" class="btn green">💬 Confirm on WhatsApp</button>
-        <button id="confirmBtn" class="btn black">✅ Order Confirmed</button>
         <button id="clearCartBtn" class="btn red">🗑️ Clear Cart</button>
       </div>
 
       <div class="tiny-note">
-        ⚠️ “Order Confirmed” दबाते ही cart clear हो जाएगा.
+        ⚠️ WhatsApp पर भेजने के बाद shop owner call करके confirm करेगा.
       </div>
 
     </div>
