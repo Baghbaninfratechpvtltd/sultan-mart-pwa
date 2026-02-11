@@ -477,3 +477,16 @@ body{
   .formGrid{grid-template-columns: 1fr;}
   .cartActions{grid-template-columns: 1fr;}
 }
+
+.topBtn{
+  padding:10px 14px;
+  border-radius:14px;
+  border:none;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.installBtn{
+  background:#00c853;
+  color:#fff;
+}
