@@ -5,161 +5,176 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sultan Mart Bharatganj</title>
 
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0ea5e9">
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0b0b0b" />
 
   <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
-
-  <!-- HEADER -->
-  <header class="top-header">
+  <!-- TOP BAR -->
+  <header class="topbar">
     <div class="brand">
-      <img src="images/logo.png" class="logo" alt="Sultan Mart Logo">
-      <div class="brand-text">
-        <h1>Sultan Mart Bharatganj</h1>
-        <p>Online Grocery • 7 AM – 10 PM</p>
-        <p class="mini">Minimum Order: ₹199 • Bharatganj Free Delivery</p>
+      <img class="logo" src="assets/logo.png" alt="Sultan Mart Logo" />
+      <div class="brandText">
+        <div class="title">Sultan Mart Bharatganj</div>
+        <div class="sub">Online Grocery • 7 AM – 10 PM</div>
+        <div class="mini">Minimum Order: ₹199 • Bharatganj Free Delivery</div>
       </div>
     </div>
 
-    <div class="top-actions">
-      <a class="callTopBtn" href="tel:9559868648">📞 Call</a>
-      <button class="cartTopBtn" id="openCartBtn">🛒 Cart <span id="cartCount">0</span></button>
+    <div class="topActions">
+      <a class="btn pill" id="callBtn" href="tel:9559868648">📞 Call</a>
+      <button class="btn pill cartBtn" id="openCartBtn">
+        🛒 Cart <span class="cartCount" id="cartCount">0</span>
+      </button>
     </div>
   </header>
 
-
-  <!-- TOP 3 BOXES -->
-  <section class="top-info">
-    <div class="info-card">
-      <h3>🚚 Delivery Info</h3>
-      <p><b>Free Delivery:</b> Bharatganj</p>
-      <p><b>Delivery Charge:</b> ₹20 (Other Areas)</p>
-      <p><b>Minimum Order:</b> ₹199</p>
+  <!-- INFO STRIP -->
+  <section class="infoStrip">
+    <div class="infoCard">
+      <div class="infoHead">🚚 Delivery Info</div>
+      <div class="infoLine"><b>Free Delivery:</b> Bharatganj</div>
+      <div class="infoLine"><b>Delivery Charge:</b> ₹20 (Other Areas)</div>
+      <div class="infoLine"><b>Minimum Order:</b> ₹199</div>
     </div>
 
-    <div class="info-card">
-      <h3>⏰ Delivery Time Slots</h3>
-      <p><b>Morning:</b> 7 AM – 11 AM</p>
-      <p><b>Afternoon:</b> 12 PM – 4 PM</p>
-      <p><b>Evening:</b> 5 PM – 9 PM</p>
+    <div class="infoCard">
+      <div class="infoHead">⏰ Delivery Time Slots</div>
+      <div class="infoLine"><b>Morning:</b> 7 AM – 11 AM</div>
+      <div class="infoLine"><b>Afternoon:</b> 12 PM – 4 PM</div>
+      <div class="infoLine"><b>Evening:</b> 5 PM – 9 PM</div>
     </div>
 
-    <div class="info-card">
-      <h3>💳 UPI Payment</h3>
-      <div class="upi-row">
-        <input id="upiIdBox" value="9559868648@paytm" readonly>
-        <button id="copyUpiBtn">Copy</button>
+    <div class="infoCard">
+      <div class="infoHead">💳 UPI Payment</div>
+      <div class="upiRow">
+        <input id="upiIdBox" class="upiInput" value="9559868648@paytm" readonly />
+        <button class="btn small" id="copyUpiBtn">Copy</button>
       </div>
-      <p class="small-note">UPI se payment karke screenshot WhatsApp par bheje.</p>
+      <div class="infoSmall">UPI pay करके screenshot WhatsApp पर भेजें।</div>
     </div>
   </section>
-
 
   <!-- SEARCH -->
-  <section class="search-area">
-    <input type="text" id="searchInput" placeholder="Search products, category..." />
+  <section class="searchWrap">
+    <input id="searchBox" class="searchBox" placeholder="Search products, category..." />
   </section>
 
-  <!-- CATEGORY -->
-  <section class="category-area">
-    <div class="cat-row" id="categoryRow"></div>
-  </section>
+  <!-- CATEGORY CHIPS -->
+  <section class="chips" id="chips"></section>
 
-
-  <!-- TRENDING / OFFERS -->
+  <!-- OFFERS -->
   <section class="section">
-    <h2>🔥 Trending / Offers (Top)</h2>
-    <div class="today-grid" id="offerGrid"></div>
-    <p id="offerEmpty" class="emptyText">No offers found.</p>
+    <div class="sectionTitle">🔥 Trending / Offers (Top)</div>
+    <div class="grid" id="offersGrid"></div>
   </section>
-
 
   <!-- ALL PRODUCTS -->
   <section class="section">
-    <h2>🛍️ All Products</h2>
-    <div class="grid" id="productGrid"></div>
+    <div class="sectionTitle">🛍️ All Products</div>
+    <div class="grid" id="productsGrid"></div>
   </section>
-
-
 
   <!-- CART MODAL -->
   <div class="modal" id="cartModal">
-    <div class="modal-box">
-
-      <div class="modal-head">
-        <h2>🛒 Your Cart</h2>
-        <button class="close-btn" id="closeCartBtn">✖</button>
+    <div class="modalBox">
+      <div class="modalHead">
+        <div class="modalTitle">🛒 Your Cart</div>
+        <button class="closeBtn" id="closeCartBtn">✖</button>
       </div>
 
-      <div id="cartItems" class="cart-items"></div>
+      <div class="cartBody">
 
-      <div class="bill">
-        <h3>🧾 Bill Summary</h3>
+        <div class="cartItems" id="cartItems"></div>
 
-        <div class="bill-row">
-          <span>Items Total</span>
-          <b id="itemsTotal">₹0</b>
+        <div class="divider"></div>
+
+        <!-- CUSTOMER DETAILS -->
+        <div class="formGrid">
+          <input id="custName" class="input" placeholder="Customer Name" />
+          <input id="custPhone" class="input" placeholder="Mobile Number" />
         </div>
 
-        <div class="bill-row">
-          <span>Delivery Charge</span>
-          <b id="deliveryCharge">₹0</b>
-        </div>
+        <textarea id="custAddress" class="input textarea" placeholder="Full Address"></textarea>
 
-        <div class="bill-row total">
-          <span>Total Payable</span>
-          <b id="grandTotal">₹0</b>
-        </div>
-
-        <div class="bill-row">
-          <span>Delivery Area</span>
-          <select id="deliveryArea">
-            <option value="bharatganj">Bharatganj (Free)</option>
+        <div class="formGrid">
+          <select id="deliveryArea" class="input">
+            <option value="bharatganj">Bharatganj (Free Delivery)</option>
             <option value="outside">Outside Bharatganj (+₹20)</option>
           </select>
-        </div>
 
-        <div class="bill-row">
-          <span>Payment Method</span>
-          <select id="paymentMethod">
-            <option value="cod">Cash on Delivery</option>
-            <option value="upi">UPI (Pay Now)</option>
+          <select id="deliverySlot" class="input">
+            <option value="Morning (7 AM – 11 AM)">Morning (7 AM – 11 AM)</option>
+            <option value="Afternoon (12 PM – 4 PM)">Afternoon (12 PM – 4 PM)</option>
+            <option value="Evening (5 PM – 9 PM)">Evening (5 PM – 9 PM)</option>
           </select>
         </div>
 
-        <!-- UPI PAY LINK -->
-        <div id="upiPayBox" class="upiPayBox">
-          <p><b>UPI Pay Link (Auto Amount)</b></p>
-          <a id="upiPayLink" href="#" target="_blank" class="upiPayLinkBtn">Pay Now</a>
-          <p class="small-note">Click karte hi amount auto fill ho jayega.</p>
+        <div class="locationRow">
+          <button class="btn outline" id="getLocationBtn">📍 Share Location</button>
+          <div class="locationText" id="locationText">Location: Not shared</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- BILL SUMMARY -->
+        <div class="bill">
+          <div class="billRow">
+            <span>Items Total</span>
+            <b id="itemsTotal">₹0</b>
+          </div>
+          <div class="billRow">
+            <span>Delivery Charges</span>
+            <b id="deliveryCharge">₹0</b>
+          </div>
+          <div class="billRow big">
+            <span>Total Payable</span>
+            <b id="grandTotal">₹0</b>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- PAYMENT METHOD -->
+        <div class="payBox">
+          <div class="payTitle">Payment Method</div>
+
+          <label class="radioRow">
+            <input type="radio" name="payMethod" value="COD" checked />
+            <span>Cash on Delivery (COD)</span>
+          </label>
+
+          <label class="radioRow">
+            <input type="radio" name="payMethod" value="UPI" />
+            <span>UPI Payment (Auto Amount Link)</span>
+          </label>
+
+          <a class="upiPayLink" id="upiPayLink" href="#" target="_blank" style="display:none;">
+            💳 Pay Now via UPI (Auto Amount)
+          </a>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- ACTIONS -->
+        <div class="cartActions">
+          <button class="btn danger" id="clearCartBtn">🗑️ Clear Cart</button>
+          <button class="btn green" id="whatsappBtn">✅ Order on WhatsApp</button>
         </div>
 
       </div>
-
-
-      <!-- CUSTOMER FORM -->
-      <div class="form">
-        <h3>👤 Customer Details</h3>
-
-        <input id="custName" placeholder="Full Name" />
-        <input id="custPhone" placeholder="Mobile Number" />
-        <textarea id="custAddress" placeholder="Full Address"></textarea>
-
-        <!-- LOCATION -->
-        <button class="locationBtn" id="getLocationBtn">📍 Share Location</button>
-        <input id="custLocation" placeholder="Location Link (auto)" readonly />
-
-        <button class="orderBtn" id="whatsappOrderBtn">📩 Order on WhatsApp</button>
-        <p class="msg" id="msgBox"></p>
-      </div>
-
     </div>
   </div>
 
-
   <script src="app.js"></script>
+
+  <script>
+    // PWA register
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js");
+    }
+  </script>
 </body>
 </html>
