@@ -1,568 +1,533 @@
-// ===============================
-// CONFIG
-// ===============================
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0DkCrsf4_AD96Kv9yaYNbMUUHpQtz59zkXH9f1T9mPI2pXB-OcXTR0pdO-9sgyarYD4pEp8nolt5R/pub?output=csv";
+// =========================
+// Sultan Mart PWA (Sheets)
+// =========================
 
-const STORE_PHONE = "9559868648";
-const STORE_UPI = "9559868648@paytm";
-const MIN_ORDER = 199;
-const OUTSIDE_DELIVERY_CHARGE = 20;
+const CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vR0DkCrsf4_AD96Kv9yaYNbMUUHpQtz59zkXH9f1T9mPI2pXB-OcXTR0pdO-9sgyarYD4pEp8nolt5R/pub?output=csv";
 
-// ===============================
-// STATE
-// ===============================
-let allProducts = [];
-let filteredProducts = [];
-let cart = {}; // {id: {product, qty}}
-let activeCategory = "All";
+const STORE = {
+  name: "Sultan Mart Bharatganj",
+  phone: "9559868648",
+  upiId: "9559868648@paytm",
+  minOrder: 199,
+  outsideCharge: 20,
+};
 
-// ===============================
 // DOM
-// ===============================
-const productGrid = document.getElementById("productGrid");
-const offerGrid = document.getElementById("offerGrid");
-const offerEmpty = document.getElementById("offerEmpty");
-const categoryRow = document.getElementById("categoryRow");
+const chipsEl = document.getElementById("chips");
+const offersGrid = document.getElementById("offersGrid");
+const productsGrid = document.getElementById("productsGrid");
+const searchBox = document.getElementById("searchBox");
 
-const searchInput = document.getElementById("searchInput");
-
+const cartCount = document.getElementById("cartCount");
 const cartModal = document.getElementById("cartModal");
 const openCartBtn = document.getElementById("openCartBtn");
 const closeCartBtn = document.getElementById("closeCartBtn");
 
-const cartItemsBox = document.getElementById("cartItems");
-const cartCount = document.getElementById("cartCount");
+const cartItemsEl = document.getElementById("cartItems");
+const clearCartBtn = document.getElementById("clearCartBtn");
+const whatsappBtn = document.getElementById("whatsappBtn");
+
+const custName = document.getElementById("custName");
+const custPhone = document.getElementById("custPhone");
+const custAddress = document.getElementById("custAddress");
+
+const deliveryArea = document.getElementById("deliveryArea");
+const deliverySlot = document.getElementById("deliverySlot");
+
+const getLocationBtn = document.getElementById("getLocationBtn");
+const locationText = document.getElementById("locationText");
 
 const itemsTotalEl = document.getElementById("itemsTotal");
 const deliveryChargeEl = document.getElementById("deliveryCharge");
 const grandTotalEl = document.getElementById("grandTotal");
 
-const deliveryArea = document.getElementById("deliveryArea");
-const paymentMethod = document.getElementById("paymentMethod");
-
-const upiPayBox = document.getElementById("upiPayBox");
-const upiPayLink = document.getElementById("upiPayLink");
-
-const custName = document.getElementById("custName");
-const custPhone = document.getElementById("custPhone");
-const custAddress = document.getElementById("custAddress");
-const custLocation = document.getElementById("custLocation");
-const getLocationBtn = document.getElementById("getLocationBtn");
-
-const whatsappOrderBtn = document.getElementById("whatsappOrderBtn");
-const msgBox = document.getElementById("msgBox");
-
 const upiIdBox = document.getElementById("upiIdBox");
 const copyUpiBtn = document.getElementById("copyUpiBtn");
 
-// ===============================
-// HELPERS
-// ===============================
-function parseCSV(csvText){
+const upiPayLink = document.getElementById("upiPayLink");
+
+upiIdBox.value = STORE.upiId;
+
+// State
+let allProducts = [];
+let filteredProducts = [];
+let selectedCategory = "All";
+
+let cart = JSON.parse(localStorage.getItem("sultan_cart") || "{}");
+let userLocation = JSON.parse(localStorage.getItem("sultan_location") || "null");
+
+// --------------------
+// CSV Parser
+// --------------------
+function parseCSV(text) {
   const rows = [];
+  let row = [];
   let current = "";
-  let insideQuotes = false;
-  const lines = [];
+  let inQuotes = false;
 
-  for(let i=0;i<csvText.length;i++){
-    const char = csvText[i];
-    if(char === '"') insideQuotes = !insideQuotes;
-    if(char === "\n" && !insideQuotes){
-      lines.push(current);
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const next = text[i + 1];
+
+    if (char === '"' && inQuotes && next === '"') {
+      current += '"';
+      i++;
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      row.push(current.trim());
       current = "";
-    } else {
-      current += char;
+      continue;
     }
-  }
-  if(current.trim() !== "") lines.push(current);
 
-  for(const line of lines){
-    const cols = [];
-    let c = "";
-    let q = false;
-    for(let i=0;i<line.length;i++){
-      const ch = line[i];
-      if(ch === '"') q = !q;
-      if(ch === "," && !q){
-        cols.push(c.trim().replace(/^"|"$/g,""));
-        c = "";
-      } else {
-        c += ch;
+    if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (current.length || row.length) {
+        row.push(current.trim());
+        rows.push(row);
       }
+      row = [];
+      current = "";
+      continue;
     }
-    cols.push(c.trim().replace(/^"|"$/g,""));
-    rows.push(cols);
+
+    current += char;
   }
+
+  if (current.length || row.length) {
+    row.push(current.trim());
+    rows.push(row);
+  }
+
   return rows;
 }
 
-function money(n){
-  return `₹${Math.round(Number(n) || 0)}`;
-}
-
-function safeNum(v){
-  const n = Number(String(v || "").replace(/[^\d.]/g,""));
+function num(v) {
+  const n = Number(String(v || "").replace(/[^\d.]/g, ""));
   return isNaN(n) ? 0 : n;
 }
 
-function normalizeText(t){
-  return String(t || "").trim().toLowerCase();
+function safe(v) {
+  return (v || "").toString().trim();
 }
 
-function discountPercent(mrp, sale){
-  mrp = safeNum(mrp);
-  sale = safeNum(sale);
-  if(mrp <= 0 || sale <= 0) return 0;
-  const p = Math.round(((mrp - sale) / mrp) * 100);
-  return p > 0 ? p : 0;
-}
+// --------------------
+// Load Products
+// --------------------
+async function loadProducts() {
+  const res = await fetch(CSV_URL, { cache: "no-store" });
+  const text = await res.text();
 
-function getDeliveryCharge(){
-  return deliveryArea.value === "outside" ? OUTSIDE_DELIVERY_CHARGE : 0;
-}
+  const rows = parseCSV(text);
+  if (!rows.length) return;
 
-function getCartTotals(){
-  let itemsTotal = 0;
-  for(const id in cart){
-    const it = cart[id];
-    itemsTotal += safeNum(it.product.salePrice) * it.qty;
-  }
-  const del = getDeliveryCharge();
-  const grand = itemsTotal + del;
-  return {itemsTotal, del, grand};
-}
+  const headers = rows[0].map((h) => h.trim());
+  const data = rows.slice(1);
 
-// ===============================
-// LOAD PRODUCTS
-// ===============================
-async function loadProducts(){
-  productGrid.innerHTML = `<p class="emptyText">Loading products...</p>`;
-  try{
-    const res = await fetch(CSV_URL);
-    const text = await res.text();
-    const rows = parseCSV(text);
+  allProducts = data
+    .map((r) => {
+      const obj = {};
+      headers.forEach((h, idx) => (obj[h] = r[idx] || ""));
 
-    // Expect header row:
-    // ID | Name | Category | MRP | Discount | Sale Price | Stock | Image
-    const header = rows[0].map(h => normalizeText(h));
-    const idx = (name) => header.indexOf(normalizeText(name));
+      const mrp = num(obj["MRP"]);
+      const discount = num(obj["Discount"]);
+      const salePriceFromSheet = num(obj["Sale Price"]);
+      const stock = num(obj["Stock"]);
 
-    const idI = idx("id");
-    const nameI = idx("name");
-    const catI = idx("category");
-    const mrpI = idx("mrp");
-    const discI = idx("discount");
-    const saleI = idx("sale price");
-    const stockI = idx("stock");
-    const imgI = idx("image");
+      let sale = salePriceFromSheet;
 
-    const products = [];
+      // अगर Sale Price खाली है तो auto calculate
+      if (!sale) {
+        if (discount > 0) {
+          sale = Math.round(mrp - (mrp * discount) / 100);
+        } else {
+          sale = mrp;
+        }
+      }
 
-    for(let i=1;i<rows.length;i++){
-      const r = rows[i];
-      if(!r || r.length < 2) continue;
+      const img = safe(obj["Image"]);
+      const name = safe(obj["Name"]);
+      const cat = safe(obj["Category"]) || "Other";
 
-      const id = r[idI] || `row-${i}`;
-      const name = r[nameI] || "Unnamed";
-      const category = r[catI] || "Other";
-      const mrp = safeNum(r[mrpI]);
-      const salePrice = safeNum(r[saleI]);
-      const stock = safeNum(r[stockI]);
-      const image = r[imgI] || "";
-
-      let disc = safeNum(r[discI]);
-      if(disc <= 0) disc = discountPercent(mrp, salePrice);
-
-      products.push({
-        id,
+      return {
+        id: safe(obj["ID"]) || name,
         name,
-        category,
+        category: cat,
         mrp,
-        discount: disc,
-        salePrice,
+        discount,
+        sale,
         stock,
-        image
-      });
-    }
+        image: img,
+      };
+    })
+    .filter((p) => p.name);
 
-    allProducts = products;
-    filteredProducts = [...allProducts];
+  // Offers = जिनका discount > 0
+  filteredProducts = [...allProducts];
 
-    renderCategories();
-    renderOffers();
-    renderProducts();
-
-  }catch(err){
-    productGrid.innerHTML = `<p class="emptyText">CSV Link Wrong / Sheet Not Public</p>`;
-    console.error(err);
-  }
+  renderChips();
+  renderAll();
+  updateCartUI();
 }
 
-// ===============================
-// RENDER CATEGORIES
-// ===============================
-function renderCategories(){
-  const cats = ["All", ...new Set(allProducts.map(p => p.category || "Other"))];
+function renderChips() {
+  const cats = ["All", ...new Set(allProducts.map((p) => p.category))];
 
-  categoryRow.innerHTML = "";
-  cats.forEach(cat=>{
-    const btn = document.createElement("button");
-    btn.className = "cat-btn" + (cat === activeCategory ? " active" : "");
-    btn.textContent = cat;
+  chipsEl.innerHTML = cats
+    .map((c) => {
+      const active = c === selectedCategory ? "active" : "";
+      return `<button class="chip ${active}" data-cat="${c}">${c}</button>`;
+    })
+    .join("");
 
-    btn.onclick = ()=>{
-      activeCategory = cat;
-      document.querySelectorAll(".cat-btn").forEach(b=>b.classList.remove("active"));
-      btn.classList.add("active");
-      applyFilters();
-    };
-
-    categoryRow.appendChild(btn);
+  chipsEl.querySelectorAll(".chip").forEach((b) => {
+    b.addEventListener("click", () => {
+      selectedCategory = b.dataset.cat;
+      chipsEl.querySelectorAll(".chip").forEach((x) => x.classList.remove("active"));
+      b.classList.add("active");
+      renderAll();
+    });
   });
 }
 
-// ===============================
-// FILTER
-// ===============================
-function applyFilters(){
-  const q = normalizeText(searchInput.value);
+function getVisibleProducts() {
+  const q = searchBox.value.trim().toLowerCase();
 
-  filteredProducts = allProducts.filter(p=>{
-    const matchSearch =
-      normalizeText(p.name).includes(q) ||
-      normalizeText(p.category).includes(q);
+  return allProducts.filter((p) => {
+    const matchCat = selectedCategory === "All" ? true : p.category === selectedCategory;
+    const matchQ =
+      !q ||
+      p.name.toLowerCase().includes(q) ||
+      p.category.toLowerCase().includes(q);
 
-    const matchCat =
-      activeCategory === "All" ? true : p.category === activeCategory;
-
-    return matchSearch && matchCat;
-  });
-
-  renderOffers();
-  renderProducts();
-}
-
-// ===============================
-// RENDER OFFERS (TOP)
-// ===============================
-function renderOffers(){
-  const offers = filteredProducts
-    .filter(p => safeNum(p.discount) > 0 && safeNum(p.stock) > 0)
-    .sort((a,b)=> safeNum(b.discount) - safeNum(a.discount))
-    .slice(0, 12);
-
-  offerGrid.innerHTML = "";
-
-  if(offers.length === 0){
-    offerEmpty.style.display = "block";
-    return;
-  }
-
-  offerEmpty.style.display = "none";
-
-  offers.forEach(p=>{
-    const card = document.createElement("div");
-    card.className = "today-card";
-
-    card.innerHTML = `
-      <img src="${p.image || "https://via.placeholder.com/400x300?text=No+Image"}" onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
-      <div class="today-title">${p.name}</div>
-      <div class="today-price">${money(p.salePrice)}</div>
-      <div class="offer-badge">${p.discount}% OFF</div>
-      <button class="today-btn" ${p.stock<=0 ? "disabled":""}>Add to Cart</button>
-    `;
-
-    card.querySelector("button").onclick = ()=> addToCart(p.id);
-
-    offerGrid.appendChild(card);
+    return matchCat && matchQ;
   });
 }
 
-// ===============================
-// RENDER PRODUCTS
-// ===============================
-function renderProducts(){
-  productGrid.innerHTML = "";
+function isOffer(p) {
+  return p.discount > 0 && p.mrp > p.sale;
+}
 
-  if(filteredProducts.length === 0){
-    productGrid.innerHTML = `<p class="emptyText">No products found.</p>`;
-    return;
-  }
+function productCard(p) {
+  const out = p.stock <= 0;
+  const offer = isOffer(p);
 
-  filteredProducts.forEach(p=>{
-    const card = document.createElement("div");
-    card.className = "product-card";
+  const badge = offer ? `<span class="badge">${p.discount}% OFF</span>` : "";
+  const mrp = offer ? `<span class="mrp">₹${p.mrp}</span>` : "";
 
-    const inStock = safeNum(p.stock) > 0;
+  const img = p.image
+    ? p.image
+    : "https://dummyimage.com/600x400/ddd/000&text=No+Image";
 
-    card.innerHTML = `
-      <img class="p-img" src="${p.image || "https://via.placeholder.com/400x300?text=No+Image"}"
-        onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
+  return `
+  <div class="card">
+    <div class="imgWrap">
+      <img src="${img}" alt="${p.name}" onerror="this.src='https://dummyimage.com/600x400/ddd/000&text=No+Image'"/>
+    </div>
+    <div class="cardBody">
+      <p class="pName">${p.name}</p>
+      <div class="pCat">${p.category}</div>
 
-      <div class="p-title">${p.name}</div>
-      <div class="p-cat">${p.category}</div>
-
-      <div class="p-price">
-        ${p.mrp > 0 ? `<span class="old-price">${money(p.mrp)}</span>` : ""}
-        <span class="new-price">${money(p.salePrice)}</span>
-        ${p.discount > 0 ? `<span class="offText">${p.discount}% OFF</span>` : ""}
+      <div class="priceRow">
+        <div class="sale">₹${p.sale}</div>
+        ${mrp}
+        ${badge}
       </div>
 
-      <div class="stockText ${inStock ? "stockIn":"stockOut"}">
-        ${inStock ? `In Stock (${p.stock})` : "Out of Stock"}
-      </div>
+      <div class="stock">Stock: ${p.stock}</div>
 
-      <button class="add-btn" ${!inStock ? "disabled":""}>
-        ${inStock ? "Add to Cart" : "Out of Stock"}
+      <button class="addBtn" ${out ? "disabled" : ""} onclick="addToCart('${p.id}')">
+        ${out ? "Out of Stock" : "Add to Cart"}
       </button>
-    `;
+    </div>
+  </div>`;
+}
 
-    card.querySelector("button").onclick = ()=> addToCart(p.id);
+function renderAll() {
+  const visible = getVisibleProducts();
 
-    productGrid.appendChild(card);
+  // Offers section
+  const offers = visible.filter((p) => isOffer(p)).slice(0, 8);
+  offersGrid.innerHTML = offers.length ? offers.map(productCard).join("") : `<div style="color:#6b7280;font-weight:800;">No offers found.</div>`;
+
+  // All products
+  productsGrid.innerHTML = visible.map(productCard).join("");
+}
+
+searchBox.addEventListener("input", renderAll);
+
+// --------------------
+// Cart
+// --------------------
+function saveCart() {
+  localStorage.setItem("sultan_cart", JSON.stringify(cart));
+}
+
+function addToCart(id) {
+  cart[id] = (cart[id] || 0) + 1;
+  saveCart();
+  updateCartUI();
+}
+
+function decCart(id) {
+  cart[id] = (cart[id] || 0) - 1;
+  if (cart[id] <= 0) delete cart[id];
+  saveCart();
+  updateCartUI();
+}
+
+function incCart(id) {
+  cart[id] = (cart[id] || 0) + 1;
+  saveCart();
+  updateCartUI();
+}
+
+function clearCart() {
+  cart = {};
+  saveCart();
+  updateCartUI();
+}
+
+function cartList() {
+  const items = [];
+  Object.keys(cart).forEach((id) => {
+    const p = allProducts.find((x) => x.id === id);
+    if (!p) return;
+    items.push({ ...p, qty: cart[id] });
   });
+  return items;
 }
 
-// ===============================
-// CART
-// ===============================
-function addToCart(id){
-  const p = allProducts.find(x=>x.id==id);
-  if(!p) return;
+function calcTotals() {
+  const items = cartList();
+  const itemsTotal = items.reduce((s, x) => s + x.sale * x.qty, 0);
 
-  if(safeNum(p.stock) <= 0) return;
+  const area = deliveryArea.value;
+  const deliveryCharge = area === "outside" ? STORE.outsideCharge : 0;
 
-  if(!cart[id]){
-    cart[id] = {product:p, qty:1};
-  } else {
-    cart[id].qty++;
-  }
+  const grandTotal = itemsTotal + deliveryCharge;
 
-  updateCartUI();
+  return { itemsTotal, deliveryCharge, grandTotal };
 }
 
-function removeFromCart(id){
-  delete cart[id];
-  updateCartUI();
-}
-
-function changeQty(id, delta){
-  if(!cart[id]) return;
-  cart[id].qty += delta;
-  if(cart[id].qty <= 0) delete cart[id];
-  updateCartUI();
-}
-
-function updateCartUI(){
-  // count
-  let count = 0;
-  for(const id in cart) count += cart[id].qty;
+function updateCartUI() {
+  const items = cartList();
+  const count = items.reduce((s, x) => s + x.qty, 0);
   cartCount.textContent = count;
 
-  // render cart
-  cartItemsBox.innerHTML = "";
-
-  const ids = Object.keys(cart);
-  if(ids.length === 0){
-    cartItemsBox.innerHTML = `<p class="emptyText">Cart is empty.</p>`;
+  // Render items
+  if (!items.length) {
+    cartItemsEl.innerHTML = `<div style="color:#6b7280;font-weight:900;">Cart is empty.</div>`;
   } else {
-    ids.forEach(id=>{
-      const it = cart[id];
-      const row = document.createElement("div");
-      row.className = "cart-row";
+    cartItemsEl.innerHTML = items
+      .map((x) => {
+        const img = x.image
+          ? x.image
+          : "https://dummyimage.com/600x400/ddd/000&text=No+Image";
 
-      row.innerHTML = `
-        <div>
-          <h4>${it.product.name}</h4>
-          <p>${money(it.product.salePrice)} × ${it.qty} = <b>${money(it.product.salePrice * it.qty)}</b></p>
-        </div>
-
-        <div class="cart-actions">
-          <button class="qty-btn">+</button>
-          <button class="qty-btn">-</button>
-          <button class="remove-btn">Remove</button>
-        </div>
-      `;
-
-      const btns = row.querySelectorAll("button");
-      btns[0].onclick = ()=> changeQty(id, +1);
-      btns[1].onclick = ()=> changeQty(id, -1);
-      btns[2].onclick = ()=> removeFromCart(id);
-
-      cartItemsBox.appendChild(row);
-    });
+        return `
+        <div class="cartItem">
+          <img class="ciImg" src="${img}" onerror="this.src='https://dummyimage.com/600x400/ddd/000&text=No+Image'"/>
+          <div>
+            <div class="ciName">${x.name}</div>
+            <div class="ciPrice">₹${x.sale} each</div>
+          </div>
+          <div class="qtyBox">
+            <button class="qBtn" onclick="decCart('${x.id}')">-</button>
+            <div class="qty">${x.qty}</div>
+            <button class="qBtn" onclick="incCart('${x.id}')">+</button>
+          </div>
+          <div style="font-weight:1000;">₹${x.sale * x.qty}</div>
+        </div>`;
+      })
+      .join("");
   }
 
-  // totals
-  const t = getCartTotals();
-  itemsTotalEl.textContent = money(t.itemsTotal);
-  deliveryChargeEl.textContent = money(t.del);
-  grandTotalEl.textContent = money(t.grand);
+  // Totals
+  const { itemsTotal, deliveryCharge, grandTotal } = calcTotals();
+  itemsTotalEl.textContent = `₹${itemsTotal}`;
+  deliveryChargeEl.textContent = `₹${deliveryCharge}`;
+  grandTotalEl.textContent = `₹${grandTotal}`;
 
-  // upi pay link
-  updateUpiPayLink();
+  // Update UPI link if selected
+  updateUpiLink();
 }
 
-function updateUpiPayLink(){
-  const t = getCartTotals();
-  const total = t.grand;
+deliveryArea.addEventListener("change", updateCartUI);
 
-  if(paymentMethod.value === "upi" && total > 0){
-    upiPayBox.style.display = "block";
+// --------------------
+// Modal
+// --------------------
+openCartBtn.addEventListener("click", () => {
+  cartModal.classList.add("show");
+  updateCartUI();
+});
+closeCartBtn.addEventListener("click", () => cartModal.classList.remove("show"));
+cartModal.addEventListener("click", (e) => {
+  if (e.target === cartModal) cartModal.classList.remove("show");
+});
 
-    // UPI deeplink
-    const upiUrl =
-      `upi://pay?pa=${encodeURIComponent(STORE_UPI)}` +
-      `&pn=${encodeURIComponent("Sultan Mart Bharatganj")}` +
-      `&am=${encodeURIComponent(total.toFixed(2))}` +
-      `&cu=INR` +
-      `&tn=${encodeURIComponent("Grocery Order Payment")}`;
-
-    upiPayLink.href = upiUrl;
-  } else {
-    upiPayBox.style.display = "none";
-    upiPayLink.href = "#";
+// --------------------
+// Location
+// --------------------
+function setLocationText() {
+  if (!userLocation) {
+    locationText.textContent = "Location: Not shared";
+    return;
   }
+  locationText.textContent = `Location: ${userLocation.lat}, ${userLocation.lng}`;
 }
 
-// ===============================
-// LOCATION
-// ===============================
-getLocationBtn.onclick = ()=>{
-  msgBox.textContent = "";
-  if(!navigator.geolocation){
-    msgBox.textContent = "Location not supported.";
+setLocationText();
+
+getLocationBtn.addEventListener("click", () => {
+  if (!navigator.geolocation) {
+    alert("Location not supported in your phone browser.");
     return;
   }
 
-  getLocationBtn.textContent = "📍 Getting location...";
   navigator.geolocation.getCurrentPosition(
-    (pos)=>{
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      const link = `https://maps.google.com/?q=${lat},${lng}`;
-      custLocation.value = link;
-      getLocationBtn.textContent = "📍 Location Added ✅";
+    (pos) => {
+      userLocation = {
+        lat: pos.coords.latitude.toFixed(6),
+        lng: pos.coords.longitude.toFixed(6),
+      };
+      localStorage.setItem("sultan_location", JSON.stringify(userLocation));
+      setLocationText();
+      alert("Location shared successfully ✅");
     },
-    ()=>{
-      getLocationBtn.textContent = "📍 Share Location";
-      msgBox.textContent = "Location permission denied.";
-    },
-    {enableHighAccuracy:true, timeout:10000}
+    () => {
+      alert("Location permission denied ❌");
+    }
   );
-};
+});
 
-// ===============================
-// WHATSAPP ORDER
-// ===============================
-whatsappOrderBtn.onclick = ()=>{
-  msgBox.textContent = "";
+// --------------------
+// Copy UPI
+// --------------------
+copyUpiBtn.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(STORE.upiId);
+    alert("UPI ID copied ✅");
+  } catch {
+    alert("Copy failed ❌");
+  }
+});
+
+// --------------------
+// UPI Payment Auto Amount Link
+// --------------------
+function getSelectedPayMethod() {
+  const r = document.querySelector("input[name='payMethod']:checked");
+  return r ? r.value : "COD";
+}
+
+function updateUpiLink() {
+  const method = getSelectedPayMethod();
+  const { grandTotal } = calcTotals();
+
+  if (method !== "UPI") {
+    upiPayLink.style.display = "none";
+    return;
+  }
+
+  // UPI Deep Link (Auto Amount)
+  const upi = STORE.upiId;
+  const payeeName = encodeURIComponent(STORE.name);
+  const amount = grandTotal;
+
+  const url = `upi://pay?pa=${encodeURIComponent(upi)}&pn=${payeeName}&am=${amount}&cu=INR`;
+
+  upiPayLink.href = url;
+  upiPayLink.style.display = "block";
+}
+
+document.querySelectorAll("input[name='payMethod']").forEach((r) => {
+  r.addEventListener("change", () => {
+    updateUpiLink();
+  });
+});
+
+// --------------------
+// Clear Cart
+// --------------------
+clearCartBtn.addEventListener("click", () => {
+  if (confirm("Clear cart?")) clearCart();
+});
+
+// --------------------
+// WhatsApp Order
+// --------------------
+function buildWhatsAppMessage() {
+  const items = cartList();
+  const { itemsTotal, deliveryCharge, grandTotal } = calcTotals();
 
   const name = custName.value.trim();
   const phone = custPhone.value.trim();
   const address = custAddress.value.trim();
-  const loc = custLocation.value.trim();
+  const slot = deliverySlot.value;
+  const area = deliveryArea.value === "outside" ? "Outside Bharatganj (+₹20)" : "Bharatganj (Free)";
 
-  if(Object.keys(cart).length === 0){
-    msgBox.textContent = "Cart is empty.";
-    return;
+  const payMethod = getSelectedPayMethod();
+
+  if (!items.length) return { ok: false, msg: "Cart is empty!" };
+  if (!name) return { ok: false, msg: "Enter customer name!" };
+  if (!phone || phone.length < 10) return { ok: false, msg: "Enter valid mobile number!" };
+  if (!address) return { ok: false, msg: "Enter full address!" };
+  if (grandTotal < STORE.minOrder) return { ok: false, msg: `Minimum order ₹${STORE.minOrder} required!` };
+
+  let text = `🛒 *${STORE.name}* Order\n\n`;
+
+  text += `👤 Name: ${name}\n`;
+  text += `📞 Mobile: ${phone}\n`;
+  text += `🏠 Address: ${address}\n`;
+  text += `🚚 Delivery Area: ${area}\n`;
+  text += `⏰ Time Slot: ${slot}\n`;
+
+  if (userLocation) {
+    text += `📍 Location: https://www.google.com/maps?q=${userLocation.lat},${userLocation.lng}\n`;
   }
 
-  if(!name || !phone || phone.length < 10){
-    msgBox.textContent = "Name & valid phone required.";
-    return;
+  text += `\n---------------------\n`;
+  text += `🧾 *Items*\n`;
+
+  items.forEach((x, i) => {
+    text += `${i + 1}. ${x.name} × ${x.qty} = ₹${x.sale * x.qty}\n`;
+  });
+
+  text += `\n---------------------\n`;
+  text += `💰 Items Total: ₹${itemsTotal}\n`;
+  text += `🚚 Delivery: ₹${deliveryCharge}\n`;
+  text += `✅ *Grand Total: ₹${grandTotal}*\n\n`;
+
+  text += `💳 Payment Method: ${payMethod}\n`;
+
+  if (payMethod === "UPI") {
+    text += `UPI ID: ${STORE.upiId}\n`;
+    text += `Pay Link: upi://pay?pa=${STORE.upiId}&pn=${STORE.name}&am=${grandTotal}&cu=INR\n`;
   }
 
-  if(!address){
-    msgBox.textContent = "Address required.";
-    return;
-  }
+  text += `\n🙏 Please confirm my order.`;
 
-  const t = getCartTotals();
-
-  if(t.itemsTotal < MIN_ORDER){
-    msgBox.textContent = `Minimum order ₹${MIN_ORDER} required.`;
-    return;
-  }
-
-  let itemsText = "";
-  for(const id in cart){
-    const it = cart[id];
-    itemsText += `• ${it.product.name} × ${it.qty} = ${money(it.product.salePrice * it.qty)}\n`;
-  }
-
-  const payMethodText = paymentMethod.value === "upi" ? "UPI (Pay Now)" : "Cash on Delivery";
-
-  const message =
-`🛒 *New Order - Sultan Mart Bharatganj*
-
-👤 *Customer Details*
-Name: ${name}
-Phone: ${phone}
-Address: ${address}
-Location: ${loc || "Not shared"}
-
-📦 *Items*
-${itemsText}
-
-🧾 *Bill Summary*
-Items Total: ${money(t.itemsTotal)}
-Delivery Charge: ${money(t.del)}
-Total Payable: ${money(t.grand)}
-
-🚚 Delivery Area: ${deliveryArea.value === "outside" ? "Outside Bharatganj" : "Bharatganj"}
-💳 Payment Method: ${payMethodText}
-
-🙏 Please confirm order.`;
-
-  const waUrl = `https://wa.me/91${STORE_PHONE}?text=${encodeURIComponent(message)}`;
-  window.open(waUrl, "_blank");
-};
-
-// ===============================
-// EVENTS
-// ===============================
-searchInput.addEventListener("input", applyFilters);
-
-openCartBtn.onclick = ()=>{
-  cartModal.style.display = "flex";
-  updateCartUI();
-};
-
-closeCartBtn.onclick = ()=>{
-  cartModal.style.display = "none";
-};
-
-cartModal.onclick = (e)=>{
-  if(e.target === cartModal){
-    cartModal.style.display = "none";
-  }
-};
-
-deliveryArea.onchange = ()=>{
-  updateCartUI();
-};
-
-paymentMethod.onchange = ()=>{
-  updateUpiPayLink();
-};
-
-copyUpiBtn.onclick = async ()=>{
-  try{
-    await navigator.clipboard.writeText(upiIdBox.value);
-    copyUpiBtn.textContent = "Copied ✅";
-    setTimeout(()=> copyUpiBtn.textContent="Copy", 1500);
-  }catch{
-    alert("Copy failed");
-  }
-};
-
-// ===============================
-// PWA (Service Worker)
-// ===============================
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("service-worker.js");
+  return { ok: true, text };
 }
 
-// START
+whatsappBtn.addEventListener("click", () => {
+  const result = buildWhatsAppMessage();
+  if (!result.ok) {
+    alert(result.msg);
+    return;
+  }
+
+  const url = `https://wa.me/91${STORE.phone}?text=${encodeURIComponent(result.text)}`;
+  window.open(url, "_blank");
+});
+
+// --------------------
 loadProducts();
