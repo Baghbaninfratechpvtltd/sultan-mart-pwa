@@ -349,15 +349,8 @@ function updateCartUI() {
       .join("");
   }
   
-  function updateCartUI() {
-
-  // ... cart items show
-  // ... subtotal calculate
-  // ... delivery calculate
-  // ... grand total show
-
-  // ✅ बस ये last में add कर दो
-  updateUpiPayButton();
+  updateUpiLink();
+  updateUpiLink();
 }
 
 
@@ -477,6 +470,8 @@ clearCartBtn.addEventListener("click", () => {
 // WhatsApp Order
 // --------------------
 function buildWhatsAppMessage() {
+  text += `🆔 Order ID: ${orderId}\n`;
+  const UPI_ID = STORE.upiId;
   const items = cartList();
   const { itemsTotal, deliveryCharge, grandTotal } = calcTotals();
 
@@ -545,7 +540,7 @@ whatsappBtn.addEventListener("click", () => {
 loadProducts();
 
 function buildUPILink(amount) {
-  const UPI_ID = "9559868648@ptyes";
+  const UPI_ID = STORE.upiId;
   const PAYEE_NAME = "Sultan Mart";
   const NOTE = "Grocery Order Payment";
 
@@ -603,3 +598,4 @@ installBtn.addEventListener("click", async () => {
   deferredPrompt = null;
   installBtn.style.display = "none";
 });
+
