@@ -8,7 +8,7 @@ const CSV_URL =
 const STORE = {
   name: "Sultan Mart Bharatganj",
   phone: "9559868648",
-  upiId: "9559868648@paytm",
+  const UPI_ID = "9559868648@ptyes";
   minOrder: 199,
   outsideCharge: 20,
 };
@@ -544,7 +544,7 @@ whatsappBtn.addEventListener("click", () => {
 loadProducts();
 
 function buildUPILink(amount) {
-  const UPI_ID = STORE.upiId;
+  const UPI_ID = "9559868648@ptyes";
   const PAYEE_NAME = "Sultan Mart";
   const NOTE = "Grocery Order Payment";
 
@@ -602,3 +602,4 @@ installBtn.addEventListener("click", async () => {
   deferredPrompt = null;
   installBtn.style.display = "none";
 });
+
