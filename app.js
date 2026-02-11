@@ -349,14 +349,8 @@ function updateCartUI() {
       .join("");
   }
   
-  function updateCartUI() {
-
-  // ... cart items show
-  // ... subtotal calculate
-  // ... delivery calculate
-  // ... grand total show
-
-  // ✅ बस ये last में add कर दो
+  updateUpiLink();
+  
   updateUpiPayButton();
 }
 
@@ -539,6 +533,11 @@ whatsappBtn.addEventListener("click", () => {
 
   const url = `https://wa.me/91${STORE.phone}?text=${encodeURIComponent(result.text)}`;
   window.open(url, "_blank");
+
+    const { grandTotal } = calcTotals();
+  afterOrderConfirmed(grandTotal, custName.value.trim(), custPhone.value.trim());
+  clearCart();
+
 });
 
 // --------------------
@@ -602,4 +601,104 @@ installBtn.addEventListener("click", async () => {
 
   deferredPrompt = null;
   installBtn.style.display = "none";
+});
+
+// =======================
+// LAST ORDER + CANCEL/REPLACE SYSTEM
+// =======================
+
+function generateOrderId() {
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(2);
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const rnd = Math.floor(1000 + Math.random() * 9000);
+  return `SM${yy}${mm}${dd}-${rnd}`;
+}
+
+function saveLastOrder(orderObj) {
+  localStorage.setItem("lastOrder", JSON.stringify(orderObj));
+}
+
+function getLastOrder() {
+  try {
+    return JSON.parse(localStorage.getItem("lastOrder"));
+  } catch (e) {
+    return null;
+  }
+}
+
+function showLastOrderUI() {
+  const lastOrderBox = document.getElementById("lastOrderBox");
+  const afterOrderActions = document.getElementById("afterOrderActions");
+  const cancelBtn = document.getElementById("cancelOrderBtn");
+  const replaceBtn = document.getElementById("replaceOrderBtn");
+
+  if (!lastOrderBox || !afterOrderActions || !cancelBtn || !replaceBtn) return;
+
+  const last = getLastOrder();
+  if (!last) {
+    lastOrderBox.style.display = "none";
+    afterOrderActions.style.display = "none";
+    return;
+  }
+
+  lastOrderBox.style.display = "block";
+  afterOrderActions.style.display = "flex";
+
+  lastOrderBox.innerHTML = `
+    <b>Last Order Saved ✅</b><br/>
+    <b>Order ID:</b> ${last.orderId}<br/>
+    <b>Total:</b> ₹${last.total}<br/>
+    <b>Time:</b> ${last.time}<br/>
+    <small>Cancel/Replacement ke liye नीचे button use karein.</small>
+  `;
+
+  cancelBtn.onclick = () => {
+    const msg =
+      `Hello ${STORE.name},%0A` +
+      `Mujhe apna order CANCEL karna hai.%0A%0A` +
+      `Order ID: ${last.orderId}%0A` +
+      `Total: ₹${last.total}%0A` +
+      `Name: ${last.name}%0A` +
+      `Phone: ${last.phone}%0A%0A` +
+      `Reason: (optional)`;
+
+    window.open(`https://wa.me/91${STORE.phone}?text=${msg}`, "_blank");
+  };
+
+  replaceBtn.onclick = () => {
+    const msg =
+      `Hello ${STORE.name},%0A` +
+      `Mujhe apne order me REPLACEMENT karna hai.%0A%0A` +
+      `Order ID: ${last.orderId}%0A` +
+      `Total: ₹${last.total}%0A` +
+      `Name: ${last.name}%0A` +
+      `Phone: ${last.phone}%0A%0A` +
+      `Replacement details:%0A` +
+      `- Remove: ____%0A` +
+      `- Add: ____`;
+
+    window.open(`https://wa.me/91${STORE.phone}?text=${msg}`, "_blank");
+  };
+}
+
+function afterOrderConfirmed(orderTotal, customerName, customerPhone) {
+  const orderId = generateOrderId();
+  const time = new Date().toLocaleString();
+
+  const orderObj = {
+    orderId,
+    total: orderTotal,
+    name: customerName || "",
+    phone: customerPhone || "",
+    time,
+  };
+
+  saveLastOrder(orderObj);
+  showLastOrderUI();
+}
+
+window.addEventListener("load", () => {
+  showLastOrderUI();
 });
