@@ -1,12 +1,20 @@
 {
   "name": "Sultan Mart Bharatganj",
   "short_name": "Sultan Mart",
-  "start_url": "./",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#111111",
+  "background_color": "#f5f7fb",
+  "theme_color": "#0ea5e9",
   "icons": [
-    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "images/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
