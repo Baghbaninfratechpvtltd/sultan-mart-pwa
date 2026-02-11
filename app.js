@@ -348,6 +348,18 @@ function updateCartUI() {
       })
       .join("");
   }
+  
+  function updateCartUI() {
+
+  // ... cart items show
+  // ... subtotal calculate
+  // ... delivery calculate
+  // ... grand total show
+
+  // ✅ बस ये last में add कर दो
+  updateUpiPayButton();
+}
+
 
   // Totals
   const { itemsTotal, deliveryCharge, grandTotal } = calcTotals();
@@ -450,7 +462,7 @@ function updateUpiLink() {
 
 document.querySelectorAll("input[name='payMethod']").forEach((r) => {
   r.addEventListener("change", () => {
-    updateUpiLink();
+    updateUpiPayButton();
   });
 });
 
@@ -531,3 +543,44 @@ whatsappBtn.addEventListener("click", () => {
 
 // --------------------
 loadProducts();
+
+function buildUPILink(amount) {
+  const UPI_ID = "9559868648@ptyes";
+  const PAYEE_NAME = "Sultan Mart";
+  const NOTE = "Grocery Order Payment";
+
+  const amt = Number(amount || 0);
+  if (!amt || amt < 1) return "";
+
+  const cleanAmount = amt.toFixed(2);
+
+  return (
+    "upi://pay" +
+    "?pa=" + encodeURIComponent(UPI_ID) +
+    "&pn=" + encodeURIComponent(PAYEE_NAME) +
+    "&am=" + encodeURIComponent(cleanAmount) +
+    "&cu=INR" +
+    "&tn=" + encodeURIComponent(NOTE)
+  );
+}
+
+function updateUpiPayButton() {
+  const upiPayLink = document.getElementById("upiPayLink");
+
+  // Payment method check
+  const selected = document.querySelector("input[name='payMethod']:checked");
+  const method = selected ? selected.value : "COD";
+
+  // Total निकालो
+  const grandTotal = Number(document.getElementById("grandTotal").innerText.replace(/[^\d.]/g, "")) || 0;
+
+  if (method !== "UPI") {
+    upiPayLink.style.display = "none";
+    return;
+  }
+
+  const link = buildUPILink(grandTotal);
+
+  upiPayLink.href = link;
+  upiPayLink.style.display = "block";
+}
