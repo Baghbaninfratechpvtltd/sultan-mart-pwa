@@ -539,10 +539,6 @@ whatsappBtn.addEventListener("click", () => {
 
   const url = `https://wa.me/91${STORE.phone}?text=${encodeURIComponent(result.text)}`;
   window.open(url, "_blank");
-
-  const { grandTotal } = calcTotals();
-afterOrderConfirmed(grandTotal, custName.value.trim(), custPhone.value.trim());
-clearCart();
 });
 
 // --------------------
@@ -607,4 +603,3 @@ installBtn.addEventListener("click", async () => {
   deferredPrompt = null;
   installBtn.style.display = "none";
 });
-
