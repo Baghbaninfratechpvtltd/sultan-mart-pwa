@@ -8,7 +8,7 @@ const CSV_URL =
 const STORE = {
   name: "Sultan Mart Bharatganj",
   phone: "9559868648",
-  const UPI_ID = "9559868648@ptyes";
+  upiId: "9559868648@ptyes",
   minOrder: 199,
   outsideCharge: 20,
 };
@@ -355,7 +355,7 @@ function updateCartUI() {
   // ... subtotal calculate
   // ... delivery calculate
   // ... grand total show
-    
+
   updateUpiPayButton();
 }
 
@@ -602,4 +602,3 @@ installBtn.addEventListener("click", async () => {
   deferredPrompt = null;
   installBtn.style.display = "none";
 });
-
