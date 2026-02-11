@@ -349,8 +349,14 @@ function updateCartUI() {
       .join("");
   }
   
-  updateUpiLink();
-  updateUpiLink();
+  function updateCartUI() {
+
+  // ... cart items show
+  // ... subtotal calculate
+  // ... delivery calculate
+  // ... grand total show
+    
+  updateUpiPayButton();
 }
 
 
@@ -470,8 +476,6 @@ clearCartBtn.addEventListener("click", () => {
 // WhatsApp Order
 // --------------------
 function buildWhatsAppMessage() {
-  text += `🆔 Order ID: ${orderId}\n`;
-  const UPI_ID = STORE.upiId;
   const items = cartList();
   const { itemsTotal, deliveryCharge, grandTotal } = calcTotals();
 
@@ -598,4 +602,3 @@ installBtn.addEventListener("click", async () => {
   deferredPrompt = null;
   installBtn.style.display = "none";
 });
-
