@@ -348,17 +348,6 @@ function updateCartUI() {
       })
       .join("");
   }
-  
-  function updateCartUI() {
-
-  // ... cart items show
-  // ... subtotal calculate
-  // ... delivery calculate
-  // ... grand total show
-
-  updateUpiPayButton();
-}
-
 
   // Totals
   const { itemsTotal, deliveryCharge, grandTotal } = calcTotals();
@@ -540,6 +529,18 @@ whatsappBtn.addEventListener("click", () => {
   window.open(url, "_blank");
 });
 
+const { grandTotal } = calcTotals();
+const orderId = generateOrderId();
+
+saveLastOrder({
+  orderId,
+  total: grandTotal,
+  name: custName.value.trim(),
+  phone: custPhone.value.trim(),
+});
+
+showLastOrderBox();
+
 // --------------------
 loadProducts();
 
@@ -601,4 +602,85 @@ installBtn.addEventListener("click", async () => {
 
   deferredPrompt = null;
   installBtn.style.display = "none";
+});
+
+// =====================
+// ORDER ID + CANCEL / REPLACE SYSTEM
+// =====================
+function generateOrderId() {
+  return "SM" + Date.now();
+}
+
+function saveLastOrder(orderObj) {
+  localStorage.setItem("sultan_last_order", JSON.stringify(orderObj));
+}
+
+function getLastOrder() {
+  try {
+    return JSON.parse(localStorage.getItem("sultan_last_order") || "null");
+  } catch {
+    return null;
+  }
+}
+
+function showLastOrderBox() {
+  const last = getLastOrder();
+  const box = document.getElementById("lastOrderBox");
+  const actions = document.getElementById("afterOrderActions");
+
+  if (!box || !actions) return;
+
+  if (!last) {
+    box.style.display = "none";
+    actions.style.display = "none";
+    return;
+  }
+
+  box.style.display = "block";
+  actions.style.display = "flex";
+
+  box.innerHTML = `
+    <b>Last Order Saved ✅</b><br>
+    <b>Order ID:</b> ${last.orderId}<br>
+    <b>Total:</b> ₹${last.total}<br>
+    <small>Cancel/Replacement ke liye button use karein.</small>
+  `;
+}
+
+function sendCancelOrder() {
+  const last = getLastOrder();
+  if (!last) return alert("No last order found!");
+
+  const msg =
+    `❌ Order Cancel Request%0A%0A` +
+    `Order ID: ${last.orderId}%0A` +
+    `Name: ${last.name}%0A` +
+    `Phone: ${last.phone}%0A%0A` +
+    `Please cancel my order.`;
+
+  window.open(`https://wa.me/91${STORE.phone}?text=${msg}`, "_blank");
+}
+
+function sendReplaceOrder() {
+  const last = getLastOrder();
+  if (!last) return alert("No last order found!");
+
+  const msg =
+    `🔁 Replacement Request%0A%0A` +
+    `Order ID: ${last.orderId}%0A` +
+    `Name: ${last.name}%0A` +
+    `Phone: ${last.phone}%0A%0A` +
+    `Replacement details:%0A- Remove: ____%0A- Add: ____`;
+
+  window.open(`https://wa.me/91${STORE.phone}?text=${msg}`, "_blank");
+}
+
+window.addEventListener("load", () => {
+  const cancelBtn = document.getElementById("cancelOrderBtn");
+  const replaceBtn = document.getElementById("replaceOrderBtn");
+
+  if (cancelBtn) cancelBtn.addEventListener("click", sendCancelOrder);
+  if (replaceBtn) replaceBtn.addEventListener("click", sendReplaceOrder);
+
+  showLastOrderBox();
 });
