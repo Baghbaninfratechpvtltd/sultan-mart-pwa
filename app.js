@@ -475,6 +475,7 @@ function buildWhatsAppMessage() {
   const area = deliveryArea.value === "outside" ? "Outside Bharatganj (+₹20)" : "Bharatganj (Free)";
 
   const payMethod = getSelectedPayMethod();
+  const orderId = generateOrderId();
 
   if (!items.length) return { ok: false, msg: "Cart is empty!" };
   if (!name) return { ok: false, msg: "Enter customer name!" };
@@ -483,6 +484,7 @@ function buildWhatsAppMessage() {
   if (grandTotal < STORE.minOrder) return { ok: false, msg: `Minimum order ₹${STORE.minOrder} required!` };
 
   let text = `🛒 *${STORE.name}* Order\n\n`;
+  text += `🆔 Order ID: *${orderId}*\n\n`;
 
   text += `👤 Name: ${name}\n`;
   text += `📞 Mobile: ${phone}\n`;
@@ -514,7 +516,17 @@ function buildWhatsAppMessage() {
   }
 
   text += `\n🙏 Please confirm my order.`;
-
+saveLastOrder({
+  orderId,
+  total: grandTotal,
+  name,
+  phone,
+  address,
+  slot,
+  area,
+  payMethod,
+  time: new Date().toLocaleString(),
+});
   return { ok: true, text };
 }
 
@@ -527,19 +539,8 @@ whatsappBtn.addEventListener("click", () => {
 
   const url = `https://wa.me/91${STORE.phone}?text=${encodeURIComponent(result.text)}`;
   window.open(url, "_blank");
+  showLastOrderBox();
 });
-
-const { grandTotal } = calcTotals();
-const orderId = generateOrderId();
-
-saveLastOrder({
-  orderId,
-  total: grandTotal,
-  name: custName.value.trim(),
-  phone: custPhone.value.trim(),
-});
-
-showLastOrderBox();
 
 // --------------------
 loadProducts();
@@ -684,3 +685,4 @@ window.addEventListener("load", () => {
 
   showLastOrderBox();
 });
+
