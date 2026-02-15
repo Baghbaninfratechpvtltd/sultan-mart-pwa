@@ -489,6 +489,12 @@ clearCartBtn.addEventListener("click", () => {
 // WhatsApp Order
 // --------------------
 function buildWhatsAppMessage() {
+  const orderPageLink = `https://sultan-mart-pwa.vercel.app/order.html?id=${orderData.orderId}`;
+const qrLink = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(orderPageLink)}`;
+
+msg += `\n\n🔗 Order Page: ${orderPageLink}`;
+msg += `\n📌 QR Code: ${qrLink}`;
+
   const items = cartList();
   const { itemsTotal, deliveryCharge, grandTotal } = calcTotals();
 
@@ -709,5 +715,6 @@ window.addEventListener("load", () => {
 
   showLastOrderBox();
 });
+
 
 
