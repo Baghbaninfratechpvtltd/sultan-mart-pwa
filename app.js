@@ -489,14 +489,6 @@ clearCartBtn.addEventListener("click", () => {
 // WhatsApp Order
 // --------------------
 function buildWhatsAppMessage() {
-  const orderPageLink = `https://sultan-mart-pwa.vercel.app/order.html?id=${orderData.orderId}`;
-const qrLink = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(orderPageLink)}`;
-
-msg += `\n\n🔗 Order Page: ${orderPageLink}`;
-msg += `\n📌 QR Code: ${qrLink}`;
-  const items = cartList();
-  const { itemsTotal, deliveryCharge, grandTotal } = calcTotals();
-
   const name = custName.value.trim();
   const phone = custPhone.value.trim();
   const address = custAddress.value.trim();
@@ -505,6 +497,15 @@ msg += `\n📌 QR Code: ${qrLink}`;
 
   const payMethod = getSelectedPayMethod();
   const orderId = generateOrderId();
+
+  const orderPageLink = `https://sultan-mart-pwa.vercel.app/order.html?id=${orderData.orderId}`;
+const qrLink = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(orderPageLink)}`;
+
+msg += `\n\n🔗 Order Page: ${orderPageLink}`;
+msg += `\n📌 QR Code: ${qrLink}`;
+  const items = cartList();
+  const { itemsTotal, deliveryCharge, grandTotal } = calcTotals();
+
 
   if (!items.length) return { ok: false, msg: "Cart is empty!" };
   if (!name) return { ok: false, msg: "Enter customer name!" };
@@ -714,6 +715,7 @@ window.addEventListener("load", () => {
 
   showLastOrderBox();
 });
+
 
 
 
