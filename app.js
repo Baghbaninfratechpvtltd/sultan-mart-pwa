@@ -1,3 +1,27 @@
+// =======================
+// 🔥 Firebase Setup
+// =======================
+const firebaseConfig = {
+  apiKey: "AIzaSyA0zW95qOLokFgruAV8nO-2eeCai6WtQ_c",
+  authDomain: "sultan-mart.firebaseapp.com",
+  projectId: "sultan-mart",
+  storageBucket: "sultan-mart.firebasestorage.app",
+  messagingSenderId: "617764247324",
+  appId: "1:617764247324:web:08bf92b6904f9c70b9ccd9"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+async function saveOrderToFirebase(orderData){
+  try{
+    await db.collection("orders").doc(orderData.orderId).set(orderData);
+    console.log("✅ Order Saved:", orderData.orderId);
+  }catch(err){
+    console.error("❌ Firebase Error:", err);
+  }
+}
+
 // =========================
 // Sultan Mart PWA (Sheets)
 // =========================
@@ -685,4 +709,5 @@ window.addEventListener("load", () => {
 
   showLastOrderBox();
 });
+
 
