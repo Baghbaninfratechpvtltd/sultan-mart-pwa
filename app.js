@@ -627,24 +627,16 @@ whatsappBtn.addEventListener("click", async () => {
 // --------------------
 loadProducts();
 
-function buildUPILink(amount) {
-  const UPI_ID = "9559868648@ptyes";
-  const PAYEE_NAME = "Sultan Mart";
-  const NOTE = "Grocery Order Payment";
+function buildUPILink(amount, orderId="") {
+  const pa = (window.SETTINGS?.upi_id || "").trim();   // settings upi id
+  const pn = encodeURIComponent(window.SETTINGS?.store_name || "Sultan Mart");
+  const am = encodeURIComponent(String(Math.round(Number(amount || 0))));
+  const cu = "INR";
 
-  const amt = Number(amount || 0);
-  if (!amt || amt < 1) return "";
+  // सबसे important: NOTE में order id
+  const note = encodeURIComponent(`Order ${orderId || "SultanMart"}`);
 
-  const cleanAmount = amt.toFixed(2);
-
-  return (
-    "upi://pay" +
-    "?pa=" + encodeURIComponent(UPI_ID) +
-    "&pn=" + encodeURIComponent(PAYEE_NAME) +
-    "&am=" + encodeURIComponent(cleanAmount) +
-    "&cu=INR" +
-    "&tn=" + encodeURIComponent(NOTE)
-  );
+  return `upi://pay?pa=${encodeURIComponent(pa)}&pn=${pn}&am=${am}&cu=${cu}&tn=${note}`;
 }
 
 function updateUpiPayButton() {
@@ -662,7 +654,8 @@ function updateUpiPayButton() {
     return;
   }
 
-  const link = buildUPILink(grandTotal);
+  const orderId = window.currentOrderId || document.getElementById("orderIdText")?.innerText || "";
+const link = buildUPILink(grandTotal, orderId);
 
   upiPayLink.href = link;
   upiPayLink.style.display = "block";
@@ -767,6 +760,7 @@ window.addEventListener("load", () => {
 
   showLastOrderBox();
 });
+
 
 
 
