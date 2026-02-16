@@ -474,7 +474,7 @@ function updateUpiLink() {
 
 document.querySelectorAll("input[name='payMethod']").forEach((r) => {
   r.addEventListener("change", () => {
-    updateUpiPayButton();
+    updateUpiLink();
   });
 });
 
@@ -543,6 +543,8 @@ const qrLink = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${
     text += `Pay Link: upi://pay?pa=${STORE.upiId}&pn=${STORE.name}&am=${grandTotal}&cu=INR\n`;
   }
 
+  text += `\n🔗 Order Page: ${orderPageLink}\n`;
+text += `📌 QR Code: ${qrLink}\n`;
   text += `\n🙏 Please confirm my order.`;
   const orderData = {
   orderId,
@@ -597,20 +599,27 @@ saveLastOrder({
   payMethod,
   time: new Date().toLocaleString(),
 });
-  return { ok: true, text };
+  return { ok: true, text, orderData };
 }
 
-whatsappBtn.addEventListener("click", () => {
+whatsappBtn.addEventListener("click", async () => {
   const result = buildWhatsAppMessage();
-  window.__lastOrderData = orderData;
+
   if (!result.ok) {
     alert(result.msg);
     return;
   }
 
+  // ✅ Firebase order data
+  window.__lastOrderData = result.orderData;
+
+  // ✅ Save in Firebase first
+  await saveOrderToFirebase(result.orderData);
+
+  // ✅ WhatsApp open
   const url = `https://wa.me/91${STORE.phone}?text=${encodeURIComponent(result.text)}`;
-  saveOrderToFirebase(window.__lastOrderData);
   window.open(url, "_blank");
+
   showLastOrderBox();
 });
 
@@ -757,3 +766,4 @@ window.addEventListener("load", () => {
 
   showLastOrderBox();
 });
+
