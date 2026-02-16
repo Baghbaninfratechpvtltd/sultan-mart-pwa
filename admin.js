@@ -125,6 +125,9 @@ async function loadOrders(){
 }
 
 function doLogin(){
+  loginBox.style.display = "none";
+adminPanel.style.display = "block";
+  localStorage.setItem("SM_ADMIN_LOGGED_IN", "YES");
   const p = (adminPass.value || "").trim();
 
   if(p !== ADMIN_PASSWORD){
@@ -153,7 +156,6 @@ function doLogout(){
   adminPass.value = "";
   loginBox.style.display = "block";
   adminPanel.style.display = "none";
-  localStorage.setItem("SM_ADMIN_LOGGED_IN", "YES");
   localStorage.removeItem("SM_ADMIN_LOGGED_IN");
 }
 
