@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sultan Mart - Admin</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <div style="max-width:1000px;margin:auto;padding:14px;">
+    <h2 style="margin:8px 0;">🔒 Sultan Mart Admin Panel</h2>
+    <p style="margin:0 0 14px 0;opacity:.8;">(Seller only)</p>
+
+    <div id="loginBox" style="background:#fff;border-radius:14px;padding:14px;box-shadow:0 10px 25px rgba(0,0,0,.08);">
+      <h3 style="margin:0 0 10px 0;">Enter Admin Password</h3>
+      <input id="adminPass" type="password" placeholder="Password" style="width:100%;padding:12px;border-radius:10px;border:1px solid #ddd;"/>
+      <button id="loginBtn" style="margin-top:10px;width:100%;padding:12px;border-radius:10px;border:none;background:#111;color:#fff;font-weight:700;">
+        Login
+      </button>
+      <p id="loginMsg" style="margin:10px 0 0 0;color:red;"></p>
+    </div>
+
+    <div id="adminPanel" style="display:none;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 
