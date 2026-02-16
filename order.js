@@ -58,6 +58,11 @@ async function loadOrder(){
       <h2>🛒 Items</h2>
       <ul>${itemsHtml}</ul>
 
+      <h2>💳 Payment</h2>
+<p>
+  Method: <b>${o.payment?.method || "-"}</b><br/>
+  ${o.payment?.method === "UPI" ? "UPI ID: " + (o.payment?.upiId || "-") : ""}
+</p>
       <h2>💰 Bill Summary</h2>
       <p>
         Subtotal: ${money(o.totals?.subTotal || 0)}<br/>
