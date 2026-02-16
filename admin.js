@@ -44,6 +44,20 @@ function badge(status){
 
 async function updateStatus(orderId, newStatus){
   try{
+    async function updatePayment(orderId, payStatus){
+  try{
+    await db.collection("orders").doc(orderId).update({
+      paymentStatus: payStatus,
+      paymentUpdatedAt: new Date().toISOString(),
+      paymentUpdatedBy: "SELLER"
+    });
+    alert("✅ Payment Updated: " + payStatus);
+    loadOrders();
+  }catch(err){
+    console.error(err);
+    alert("❌ Payment update failed");
+  }
+}
     await db.collection("orders").doc(orderId).update({
       status: newStatus,
       statusUpdatedAt: new Date().toISOString(),
@@ -109,6 +123,16 @@ function renderOrders(list){
             style="padding:10px;border-radius:10px;border:none;background:#1565c0;color:#fff;font-weight:800;cursor:pointer;">
             ✅ Delivered
           </button>
+
+          <button onclick="updatePayment('${orderId}','PAID')"
+  style="padding:10px;border-radius:10px;border:none;background:#111;color:#fff;font-weight:900;cursor:pointer;">
+  💳 Mark PAID
+</button>
+
+<button onclick="updatePayment('${orderId}','NOT_PAID')"
+  style="padding:10px;border-radius:10px;border:none;background:#555;color:#fff;font-weight:900;cursor:pointer;">
+  ❌ Mark NOT PAID
+</button>
         </div>
       </div>
     `;
