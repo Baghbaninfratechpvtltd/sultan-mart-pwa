@@ -497,12 +497,10 @@ function buildWhatsAppMessage() {
 
   const payMethod = getSelectedPayMethod();
   const orderId = generateOrderId();
-
-  const orderPageLink = `https://sultan-mart-pwa.vercel.app/order.html?id=${orderData.orderId}`;
+// ✅ Order Page Link + QR
+const orderPageLink = `https://sultan-mart-pwa.vercel.app/order.html?id=${orderId}`;
 const qrLink = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(orderPageLink)}`;
 
-msg += `\n\n🔗 Order Page: ${orderPageLink}`;
-msg += `\n📌 QR Code: ${qrLink}`;
   const items = cartList();
   const { itemsTotal, deliveryCharge, grandTotal } = calcTotals();
 
@@ -546,6 +544,48 @@ msg += `\n📌 QR Code: ${qrLink}`;
   }
 
   text += `\n🙏 Please confirm my order.`;
+  const orderData = {
+  orderId,
+  time: new Date().toISOString(),
+  customer: {
+    name,
+    phone,
+    address,
+  },
+  delivery: {
+    area,
+    slot,
+    charge: deliveryCharge,
+  },
+  payment: {
+    method: payMethod,
+    upiId: STORE.upiId,
+    upiLink: (payMethod === "UPI") ? buildUPILink(grandTotal) : "",
+  },
+  totals: {
+    subTotal: itemsTotal,
+    delivery: deliveryCharge,
+    grandTotal: grandTotal,
+  },
+  items: items.map(x => ({
+    id: x.id,
+    name: x.name,
+    qty: x.qty,
+    salePrice: x.sale,
+    mrp: x.mrp,
+    discount: x.discount
+  })),
+  location: userLocation ? {
+    lat: userLocation.lat,
+    lng: userLocation.lng,
+    map: `https://www.google.com/maps?q=${userLocation.lat},${userLocation.lng}`
+  } : null,
+  links: {
+    orderPage: orderPageLink,
+    qr: qrLink
+  }
+};
+
 saveLastOrder({
   orderId,
   total: grandTotal,
@@ -562,12 +602,14 @@ saveLastOrder({
 
 whatsappBtn.addEventListener("click", () => {
   const result = buildWhatsAppMessage();
+  window.__lastOrderData = orderData;
   if (!result.ok) {
     alert(result.msg);
     return;
   }
 
   const url = `https://wa.me/91${STORE.phone}?text=${encodeURIComponent(result.text)}`;
+  saveOrderToFirebase(window.__lastOrderData);
   window.open(url, "_blank");
   showLastOrderBox();
 });
@@ -715,8 +757,3 @@ window.addEventListener("load", () => {
 
   showLastOrderBox();
 });
-
-
-
-
-
