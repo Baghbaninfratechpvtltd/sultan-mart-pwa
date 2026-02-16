@@ -136,6 +136,16 @@ function doLogin(){
   loginBox.style.display = "none";
   adminPanel.style.display = "block";
 
+  function autoLoginIfSaved(){
+  const saved = localStorage.getItem("SM_ADMIN_LOGGED_IN");
+  if(saved === "YES"){
+    loginBox.style.display = "none";
+    adminPanel.style.display = "block";
+    loadOrders();
+  }
+}
+autoLoginIfSaved();
+
   loadOrders();
 }
 
@@ -143,6 +153,8 @@ function doLogout(){
   adminPass.value = "";
   loginBox.style.display = "block";
   adminPanel.style.display = "none";
+  localStorage.setItem("SM_ADMIN_LOGGED_IN", "YES");
+  localStorage.removeItem("SM_ADMIN_LOGGED_IN");
 }
 
 loginBtn.addEventListener("click", doLogin);
