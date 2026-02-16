@@ -16,6 +16,9 @@ const db = firebase.firestore();
 // 🔒 Admin Password (CHANGE if you want)
 const ADMIN_PASSWORD = "SULTAN123";
 
+// 🔥 LocalStorage Key (remember login)
+const ADMIN_LOGIN_KEY = "SM_ADMIN_LOGGED_IN";
+
 const loginBox = document.getElementById("loginBox");
 const adminPanel = document.getElementById("adminPanel");
 const loginBtn = document.getElementById("loginBtn");
@@ -33,10 +36,10 @@ function money(n){
 
 function badge(status){
   const s = (status || "PENDING").toUpperCase();
-  if(s === "CANCELLED") return `<span style="color:red;font-weight:800;">🔴 CANCELLED</span>`;
-  if(s === "DELIVERED") return `<span style="color:green;font-weight:800;">✅ DELIVERED</span>`;
-  if(s === "CONFIRMED") return `<span style="color:green;font-weight:800;">🟢 CONFIRMED</span>`;
-  return `<span style="color:#b8860b;font-weight:800;">🟡 PENDING</span>`;
+  if(s === "CANCELLED") return `<span style="color:red;font-weight:900;">🔴 CANCELLED</span>`;
+  if(s === "DELIVERED") return `<span style="color:green;font-weight:900;">✅ DELIVERED</span>`;
+  if(s === "CONFIRMED") return `<span style="color:green;font-weight:900;">🟢 CONFIRMED</span>`;
+  return `<span style="color:#b8860b;font-weight:900;">🟡 PENDING</span>`;
 }
 
 async function updateStatus(orderId, newStatus){
@@ -47,6 +50,7 @@ async function updateStatus(orderId, newStatus){
       statusUpdatedBy: "SELLER"
     });
     alert("✅ Updated: " + newStatus);
+    loadOrders();
   }catch(err){
     console.error(err);
     alert("❌ Status update failed");
@@ -120,14 +124,18 @@ async function loadOrders(){
     renderOrders(allOrders);
   }catch(err){
     console.error(err);
-    ordersList.innerHTML = `<p style="color:red;">❌ Firebase load error (check Firestore rules)</p>`;
+    ordersList.innerHTML = `<p style="color:red;font-weight:800;">❌ Firebase load error (check Firestore rules)</p>`;
   }
 }
 
-function doLogin(){
+function openAdminPanel(){
+  loginMsg.innerText = "";
   loginBox.style.display = "none";
-adminPanel.style.display = "block";
-  localStorage.setItem("SM_ADMIN_LOGGED_IN", "YES");
+  adminPanel.style.display = "block";
+  loadOrders();
+}
+
+function doLogin(){
   const p = (adminPass.value || "").trim();
 
   if(p !== ADMIN_PASSWORD){
@@ -135,30 +143,35 @@ adminPanel.style.display = "block";
     return;
   }
 
-  loginMsg.innerText = "";
-  loginBox.style.display = "none";
-  adminPanel.style.display = "block";
+  // ✅ Save login so refresh won't ask again
+  localStorage.setItem(ADMIN_LOGIN_KEY, "YES");
 
-  function autoLoginIfSaved(){
-  const saved = localStorage.getItem("SM_ADMIN_LOGGED_IN");
-  if(saved === "YES"){
-    loginBox.style.display = "none";
-    adminPanel.style.display = "block";
-    loadOrders();
-  }
-}
-autoLoginIfSaved();
-
-  loadOrders();
+  openAdminPanel();
 }
 
 function doLogout(){
   adminPass.value = "";
   loginBox.style.display = "block";
   adminPanel.style.display = "none";
-  localStorage.removeItem("SM_ADMIN_LOGGED_IN");
+
+  // ✅ Remove saved login
+  localStorage.removeItem(ADMIN_LOGIN_KEY);
 }
 
+// =======================
+// 🔥 Auto Login on Refresh
+// =======================
+function autoLoginIfSaved(){
+  const saved = localStorage.getItem(ADMIN_LOGIN_KEY);
+  if(saved === "YES"){
+    openAdminPanel();
+  }
+}
+autoLoginIfSaved();
+
+// =======================
+// Events
+// =======================
 loginBtn.addEventListener("click", doLogin);
 logoutBtn.addEventListener("click", doLogout);
 
