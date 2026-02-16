@@ -544,8 +544,6 @@ const qrLink = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${
   }
 
   text += `\n🔗 Order Page: ${orderPageLink}\n`;
-  const adminLink = `${orderPageLink}&admin=1`;
-text += `\n🧑‍💼 Seller Admin Link: ${adminLink}\n`;
 text += `📌 QR Code: ${qrLink}\n`;
   text += `\n🙏 Please confirm my order.`;
   const orderData = {
@@ -769,5 +767,6 @@ window.addEventListener("load", () => {
 
   showLastOrderBox();
 });
+
 
 
