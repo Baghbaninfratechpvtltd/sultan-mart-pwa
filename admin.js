@@ -13,7 +13,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// 🔒 Admin Password (CHANGE if you want)
+// 🔒 Admin Password
 const ADMIN_PASSWORD = "SULTAN123";
 
 // 🔥 LocalStorage Key (remember login)
@@ -42,9 +42,28 @@ function badge(status){
   return `<span style="color:#b8860b;font-weight:900;">🟡 PENDING</span>`;
 }
 
+// =======================
+// ✅ Update Order Status
+// =======================
 async function updateStatus(orderId, newStatus){
   try{
-    async function updatePayment(orderId, payStatus){
+    await db.collection("orders").doc(orderId).update({
+      status: newStatus,
+      statusUpdatedAt: new Date().toISOString(),
+      statusUpdatedBy: "SELLER"
+    });
+    alert("✅ Updated: " + newStatus);
+    loadOrders();
+  }catch(err){
+    console.error(err);
+    alert("❌ Status update failed");
+  }
+}
+
+// =======================
+// ✅ Update Payment Status
+// =======================
+async function updatePayment(orderId, payStatus){
   try{
     await db.collection("orders").doc(orderId).update({
       paymentStatus: payStatus,
@@ -56,18 +75,6 @@ async function updateStatus(orderId, newStatus){
   }catch(err){
     console.error(err);
     alert("❌ Payment update failed");
-  }
-}
-    await db.collection("orders").doc(orderId).update({
-      status: newStatus,
-      statusUpdatedAt: new Date().toISOString(),
-      statusUpdatedBy: "SELLER"
-    });
-    alert("✅ Updated: " + newStatus);
-    loadOrders();
-  }catch(err){
-    console.error(err);
-    alert("❌ Status update failed");
   }
 }
 
@@ -125,14 +132,14 @@ function renderOrders(list){
           </button>
 
           <button onclick="updatePayment('${orderId}','PAID')"
-  style="padding:10px;border-radius:10px;border:none;background:#111;color:#fff;font-weight:900;cursor:pointer;">
-  💳 Mark PAID
-</button>
+            style="padding:10px;border-radius:10px;border:none;background:#111;color:#fff;font-weight:900;cursor:pointer;">
+            💳 Mark PAID
+          </button>
 
-<button onclick="updatePayment('${orderId}','NOT_PAID')"
-  style="padding:10px;border-radius:10px;border:none;background:#555;color:#fff;font-weight:900;cursor:pointer;">
-  ❌ Mark NOT PAID
-</button>
+          <button onclick="updatePayment('${orderId}','NOT_PAID')"
+            style="padding:10px;border-radius:10px;border:none;background:#555;color:#fff;font-weight:900;cursor:pointer;">
+            ❌ Mark NOT PAID
+          </button>
         </div>
       </div>
     `;
@@ -167,9 +174,7 @@ function doLogin(){
     return;
   }
 
-  // ✅ Save login so refresh won't ask again
   localStorage.setItem(ADMIN_LOGIN_KEY, "YES");
-
   openAdminPanel();
 }
 
@@ -177,21 +182,18 @@ function doLogout(){
   adminPass.value = "";
   loginBox.style.display = "block";
   adminPanel.style.display = "none";
-
-  // ✅ Remove saved login
   localStorage.removeItem(ADMIN_LOGIN_KEY);
 }
 
 // =======================
 // 🔥 Auto Login on Refresh
 // =======================
-function autoLoginIfSaved(){
+(function autoLoginIfSaved(){
   const saved = localStorage.getItem(ADMIN_LOGIN_KEY);
   if(saved === "YES"){
     openAdminPanel();
   }
-}
-autoLoginIfSaved();
+})();
 
 // =======================
 // Events
