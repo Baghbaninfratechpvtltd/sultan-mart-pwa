@@ -561,6 +561,7 @@ text += `📌 QR Code: ${qrLink}\n`;
   name,
   phone,
   address,
+    paymentStatus: "NOT_PAID",
 },
 status: "PENDING",
   delivery: {
@@ -658,6 +659,7 @@ function buildUPILink(amount, orderId="") {
 
 function updateUpiPayButton() {
   const upiPayLink = document.getElementById("upiPayLink");
+  const orderId = ensureCurrentOrderId();
 
   // Payment method check
   const selected = document.querySelector("input[name='payMethod']:checked");
@@ -702,6 +704,13 @@ installBtn.addEventListener("click", async () => {
 // =====================
 function generateOrderId() {
   return "SM" + Date.now();
+}
+
+function ensureCurrentOrderId(){
+  if(!window.currentOrderId){
+    window.currentOrderId = generateOrderId();
+  }
+  return window.currentOrderId;
 }
 
 function saveLastOrder(orderObj) {
@@ -777,6 +786,7 @@ window.addEventListener("load", () => {
 
   showLastOrderBox();
 });
+
 
 
 
