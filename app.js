@@ -541,7 +541,7 @@ const qrLink = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${
 
   if (payMethod === "UPI") {
     text += `UPI ID: ${STORE.upiId}\n`;
-    text += `Pay Link: upi://pay?pa=${STORE.upiId}&pn=${STORE.name}&am=${grandTotal}&cu=INR\n`;
+    text += `Pay Link: ${buildUPILink(grandTotal, orderId)}\n`;
   }
 
   text += `\n🔗 Order Page: ${orderPageLink}\n`;
@@ -551,11 +551,11 @@ text += `📌 QR Code: ${qrLink}\n`;
   orderId,
   time: new Date().toISOString(),
   customer: {
-    name,
-    phone,
-    address,
-    status: "PENDING",
-  },
+  name,
+  phone,
+  address,
+},
+status: "PENDING",
   delivery: {
     area,
     slot,
@@ -564,7 +564,7 @@ text += `📌 QR Code: ${qrLink}\n`;
   payment: {
     method: payMethod,
     upiId: STORE.upiId,
-    upiLink: (payMethod === "UPI") ? buildUPILink(grandTotal) : "",
+    upiLink: (payMethod === "UPI") ? buildUPILink(grandTotal, orderId) : "",
   },
   totals: {
     subTotal: itemsTotal,
@@ -770,4 +770,5 @@ window.addEventListener("load", () => {
 
   showLastOrderBox();
 });
+
 
