@@ -497,6 +497,7 @@ function buildWhatsAppMessage() {
 
   const payMethod = getSelectedPayMethod();
   const orderId = generateOrderId();
+  window.currentOrderId = orderId;
 // ✅ Order Page Link + QR
 const orderPageLink = `https://sultan-mart-pwa.vercel.app/order.html?id=${orderId}`;
 const qrLink = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(orderPageLink)}`;
@@ -627,15 +628,16 @@ whatsappBtn.addEventListener("click", async () => {
 // --------------------
 loadProducts();
 
-function buildUPILink(amount) {
-  const UPI_ID = "9559868648@ptyes";
-  const PAYEE_NAME = "Sultan Mart";
-  const NOTE = "Grocery Order Payment";
+function buildUPILink(amount, orderId="") {
+  const UPI_ID = STORE.upiId;
+  const PAYEE_NAME = STORE.name;
 
   const amt = Number(amount || 0);
   if (!amt || amt < 1) return "";
 
   const cleanAmount = amt.toFixed(2);
+
+  const NOTE = `Order ${orderId || "SultanMart"}`;
 
   return (
     "upi://pay" +
@@ -662,7 +664,8 @@ function updateUpiPayButton() {
     return;
   }
 
-  const link = buildUPILink(grandTotal);
+  const orderId = window.currentOrderId || document.getElementById("orderIdText")?.innerText || "";
+const link = buildUPILink(grandTotal, orderId);
 
   upiPayLink.href = link;
   upiPayLink.style.display = "block";
@@ -767,3 +770,4 @@ window.addEventListener("load", () => {
 
   showLastOrderBox();
 });
+
