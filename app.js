@@ -497,14 +497,6 @@ function buildWhatsAppMessage() {
 
   const payMethod = getSelectedPayMethod();
   const orderId = generateOrderId();
-  function ensureCurrentOrderId(){
-  if(!window.currentOrderId){
-    window.currentOrderId = generateOrderId();
-  }
-  return window.currentOrderId;
-}
-
-  window.currentOrderId = orderId;
 // ✅ Order Page Link + QR
 const orderPageLink = `https://sultan-mart-pwa.vercel.app/order.html?id=${orderId}`;
 const qrLink = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(orderPageLink)}`;
@@ -548,7 +540,7 @@ const qrLink = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${
 
   if (payMethod === "UPI") {
     text += `UPI ID: ${STORE.upiId}\n`;
-    text += `Pay Link: ${buildUPILink(grandTotal, orderId)}\n`;
+    text += `Pay Link: upi://pay?pa=${STORE.upiId}&pn=${STORE.name}&am=${grandTotal}&cu=INR\n`;
   }
 
   text += `\n🔗 Order Page: ${orderPageLink}\n`;
@@ -558,12 +550,11 @@ text += `📌 QR Code: ${qrLink}\n`;
   orderId,
   time: new Date().toISOString(),
   customer: {
-  name,
-  phone,
-  address,
-    paymentStatus: "NOT_PAID",
-},
-status: "PENDING",
+    name,
+    phone,
+    address,
+    status: "PENDING",
+  },
   delivery: {
     area,
     slot,
@@ -572,7 +563,7 @@ status: "PENDING",
   payment: {
     method: payMethod,
     upiId: STORE.upiId,
-    upiLink: (payMethod === "UPI") ? buildUPILink(grandTotal, orderId) : "",
+    upiLink: (payMethod === "UPI") ? buildUPILink(grandTotal) : "",
   },
   totals: {
     subTotal: itemsTotal,
@@ -636,16 +627,15 @@ whatsappBtn.addEventListener("click", async () => {
 // --------------------
 loadProducts();
 
-function buildUPILink(amount, orderId="") {
-  const UPI_ID = STORE.upiId;
-  const PAYEE_NAME = STORE.name;
+function buildUPILink(amount) {
+  const UPI_ID = "9559868648@ptyes";
+  const PAYEE_NAME = "Sultan Mart";
+  const NOTE = "Grocery Order Payment";
 
   const amt = Number(amount || 0);
   if (!amt || amt < 1) return "";
 
   const cleanAmount = amt.toFixed(2);
-
-  const NOTE = `Order ${orderId || "SultanMart"}`;
 
   return (
     "upi://pay" +
@@ -659,7 +649,6 @@ function buildUPILink(amount, orderId="") {
 
 function updateUpiPayButton() {
   const upiPayLink = document.getElementById("upiPayLink");
-  const orderId = ensureCurrentOrderId();
 
   // Payment method check
   const selected = document.querySelector("input[name='payMethod']:checked");
@@ -673,8 +662,7 @@ function updateUpiPayButton() {
     return;
   }
 
-  const orderId = ensureCurrentOrderId();
-const link = buildUPILink(grandTotal, orderId);
+  const link = buildUPILink(grandTotal);
 
   upiPayLink.href = link;
   upiPayLink.style.display = "block";
@@ -704,13 +692,6 @@ installBtn.addEventListener("click", async () => {
 // =====================
 function generateOrderId() {
   return "SM" + Date.now();
-}
-
-function ensureCurrentOrderId(){
-  if(!window.currentOrderId){
-    window.currentOrderId = generateOrderId();
-  }
-  return window.currentOrderId;
 }
 
 function saveLastOrder(orderObj) {
@@ -786,7 +767,3 @@ window.addEventListener("load", () => {
 
   showLastOrderBox();
 });
-
-
-
-
