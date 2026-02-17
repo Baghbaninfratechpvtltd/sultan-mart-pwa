@@ -497,6 +497,13 @@ function buildWhatsAppMessage() {
 
   const payMethod = getSelectedPayMethod();
   const orderId = generateOrderId();
+  function ensureCurrentOrderId(){
+  if(!window.currentOrderId){
+    window.currentOrderId = generateOrderId();
+  }
+  return window.currentOrderId;
+}
+
   window.currentOrderId = orderId;
 // ✅ Order Page Link + QR
 const orderPageLink = `https://sultan-mart-pwa.vercel.app/order.html?id=${orderId}`;
@@ -664,7 +671,7 @@ function updateUpiPayButton() {
     return;
   }
 
-  const orderId = window.currentOrderId || document.getElementById("orderIdText")?.innerText || "";
+  const orderId = ensureCurrentOrderId();
 const link = buildUPILink(grandTotal, orderId);
 
   upiPayLink.href = link;
@@ -770,5 +777,6 @@ window.addEventListener("load", () => {
 
   showLastOrderBox();
 });
+
 
 
